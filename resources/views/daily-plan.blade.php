@@ -42,6 +42,50 @@
         background: linear-gradient(90deg, #fbbf24, #fcd34d);
     }
 
+    .scrollbar-dock {
+        position: sticky;
+        bottom: 8px;
+        z-index: 35;
+        margin-top: -2px;
+        padding: 4px 0 2px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.72) 45%, rgba(15, 23, 42, 0.92) 100%);
+    }
+
+    .scrollbar-proxy {
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 20px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(15, 23, 42, 0.88);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35);
+        scrollbar-width: auto;
+        scrollbar-color: #f59e0b rgba(255,255,255,0.08);
+    }
+
+    .scrollbar-proxy::-webkit-scrollbar {
+        height: 18px;
+    }
+
+    .scrollbar-proxy::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.08);
+        border-radius: 999px;
+    }
+
+    .scrollbar-proxy::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        border-radius: 999px;
+        border: 2px solid rgba(15, 23, 42, 0.88);
+    }
+
+    .scrollbar-proxy::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(90deg, #fbbf24, #fde68a);
+    }
+
+    .scrollbar-proxy-inner {
+        height: 1px;
+    }
+
     .paper-fit-canvas {
         width: 100%;
         margin: 0 auto;
@@ -1244,16 +1288,76 @@
                 </div>
             </div>
         </div>
+
+        <div class="scrollbar-dock">
+            <div class="scrollbar-proxy" id="scrollbar-proxy" aria-label="Horizontal Scroll Controller">
+                <div class="scrollbar-proxy-inner" id="scrollbar-proxy-inner"></div>
+            </div>
+        </div>
     </form>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const fitStage = document.getElementById('paper-fit-stage');
+    const fitCanvas = document.getElementById('paper-fit-canvas');
+    const paperCard = document.getElementById('paper-card');
+    const scrollbarProxy = document.getElementById('scrollbar-proxy');
+    const scrollbarProxyInner = document.getElementById('scrollbar-proxy-inner');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
         out_of_service: 'train-status-out_of_service',
     };
+
+    const syncProxyWidth = () => {
+        if (! fitStage || ! fitCanvas || ! scrollbarProxyInner) {
+            return;
+        }
+
+        const contentWidth = Math.max(fitCanvas.scrollWidth, paperCard ? paperCard.scrollWidth : 0, fitStage.clientWidth);
+        scrollbarProxyInner.style.width = `${contentWidth}px`;
+    };
+
+    let syncingFromStage = false;
+    let syncingFromProxy = false;
+
+    if (fitStage && scrollbarProxy) {
+        fitStage.addEventListener('scroll', () => {
+            if (syncingFromProxy) {
+                return;
+            }
+
+            syncingFromStage = true;
+            scrollbarProxy.scrollLeft = fitStage.scrollLeft;
+            syncingFromStage = false;
+        });
+
+        scrollbarProxy.addEventListener('scroll', () => {
+            if (syncingFromStage) {
+                return;
+            }
+
+            syncingFromProxy = true;
+            fitStage.scrollLeft = scrollbarProxy.scrollLeft;
+            syncingFromProxy = false;
+        });
+    }
+
+    const proxyResizeObserver = typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => syncProxyWidth())
+        : null;
+
+    if (proxyResizeObserver && fitCanvas) {
+        proxyResizeObserver.observe(fitCanvas);
+    }
+
+    if (proxyResizeObserver && fitStage) {
+        proxyResizeObserver.observe(fitStage);
+    }
+
+    window.addEventListener('resize', syncProxyWidth);
+    syncProxyWidth();
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
         const trainSetSelect = row.querySelector('.train-set-select');
@@ -1372,6 +1476,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.syncTrainDefaults(false);
                 }
             });
+
+            syncProxyWidth();
         });
     }
 });
