@@ -1303,7 +1303,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            const scale = Math.min(1, stageWidth / naturalWidth);
+            const fitPadding = 28;
+            const availableWidth = Math.max(stageWidth - fitPadding, 0);
+            const scale = Math.min(1, availableWidth / naturalWidth);
 
             fitStage.classList.add('paper-fit-active');
             fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
