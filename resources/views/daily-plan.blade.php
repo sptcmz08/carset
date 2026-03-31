@@ -4,13 +4,13 @@
 @section('content')
 <style>
     .page-content {
-        padding-inline: 24px;
+        padding: 14px 16px 18px;
     }
 
     .service-book-shell {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 10px;
     }
 
     .paper-fit-stage {
@@ -27,45 +27,45 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
+        gap: 10px;
         flex-wrap: wrap;
     }
 
     .service-book-toolbar .book-nav {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
     }
 
     .service-book-toolbar .book-date {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         background: rgba(255,255,255,0.06);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 14px;
-        padding: 10px 14px;
+        padding: 8px 10px;
     }
 
     .service-book-summary {
         display: grid;
         grid-template-columns: repeat(3, minmax(180px, 1fr));
-        gap: 12px;
+        gap: 8px;
     }
 
     .service-book-summary .summary-card {
         border-radius: 14px;
-        padding: 14px 18px;
+        padding: 10px 14px;
         border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.04);
     }
 
     .service-book-summary .summary-card strong {
         display: block;
-        font-size: 28px;
+        font-size: 24px;
         line-height: 1;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .service-book-summary .summary-card small {
@@ -94,7 +94,7 @@
     .paper-card {
         background: #f8fafc;
         color: #0f172a;
-        border-radius: 18px;
+        border-radius: 12px;
         border: 1px solid rgba(255,255,255,0.08);
         overflow: hidden;
         box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
@@ -133,11 +133,11 @@
     }
 
     .paper-header {
-        padding: 18px 22px;
+        padding: 12px 16px;
         border-bottom: 2px solid #1e293b;
         display: grid;
         grid-template-columns: 220px 1fr 260px;
-        gap: 16px;
+        gap: 10px;
         align-items: center;
         background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
     }
@@ -178,7 +178,7 @@
 
     .paper-title input {
         width: 100%;
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         text-align: center;
         border: none;
@@ -293,10 +293,10 @@
     }
 
     .paper-toolbar {
-        padding: 14px 22px;
+        padding: 10px 16px;
         display: grid;
         grid-template-columns: 1fr 0.7fr;
-        gap: 18px;
+        gap: 12px;
         border-bottom: 1px solid #cbd5e1;
         background: #fff;
     }
@@ -334,7 +334,7 @@
     }
 
     .paper-table-wrap {
-        overflow-x: auto;
+        overflow: visible;
         background: repeating-linear-gradient(
             0deg,
             rgba(148, 163, 184, 0.05),
@@ -495,11 +495,11 @@
     .row-theme-yellow td { background: rgba(250, 204, 21, 0.45) !important; }
 
     .paper-footer {
-        padding: 18px 22px 22px;
+        padding: 12px 16px 14px;
         border-top: 2px solid #1e293b;
         display: grid;
         grid-template-columns: 1fr 300px;
-        gap: 18px;
+        gap: 12px;
         background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
     }
 
@@ -584,14 +584,14 @@
 
     .paper-actions {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
     }
 
     .footer-block-grid {
         display: grid;
         grid-template-columns: 1.25fr 0.75fr;
-        gap: 16px;
+        gap: 12px;
     }
 
     .footer-mini-table {
@@ -650,9 +650,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
-        padding: 10px 16px;
+        padding: 6px 10px;
         background: rgba(255,255,255,0.05);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 12px;
@@ -661,8 +661,8 @@
     .paper-signoff-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 14px;
+        gap: 8px;
+        margin-top: 10px;
     }
 
     .paper-signoff-box {
@@ -739,7 +739,7 @@
 
     @media (max-width: 1024px) {
         .page-content {
-            padding-inline: 16px;
+            padding: 12px;
         }
 
         .service-book-summary,
@@ -764,12 +764,23 @@
         }
 
         .paper-fit-canvas {
+            zoom: 0.58;
+            width: calc(100% / 0.58);
+        }
+    }
+
+    @media (min-width: 1367px) and (max-width: 1536px) {
+        .paper-fit-stage {
+            overflow: visible;
+        }
+
+        .paper-fit-canvas {
             zoom: 0.68;
             width: calc(100% / 0.68);
         }
     }
 
-    @media (min-width: 1367px) and (max-width: 1536px) {
+    @media (min-width: 1537px) and (max-width: 1720px) {
         .paper-fit-stage {
             overflow: visible;
         }
@@ -780,14 +791,14 @@
         }
     }
 
-    @media (min-width: 1537px) and (max-width: 1720px) {
+    @media (min-width: 1721px) and (max-width: 1920px) {
         .paper-fit-stage {
             overflow: visible;
         }
 
         .paper-fit-canvas {
-            zoom: 0.84;
-            width: calc(100% / 0.84);
+            zoom: 0.86;
+            width: calc(100% / 0.86);
         }
     }
 </style>
