@@ -23,6 +23,9 @@
         .plan-table th { background: #e5e7eb; font-size: 8px; }
         .group { background: #d1d5db; }
         .left { text-align: left; }
+        .train-cell { padding: 0 !important; }
+        .train-order { display: block; padding: 2px 0; border-bottom: 1px dashed #111; font-size: 7px; font-weight: bold; background: #f8fafc; }
+        .train-code { display: block; padding: 4px 0; font-weight: bold; }
         .status-available { background: #dcfce7; }
         .status-warning { background: #fef9c3; }
         .status-out_of_service { background: #fee2e2; }
@@ -138,7 +141,7 @@
             <tbody>
                 @foreach($entries as $entry)
                     <tr class="{{ $entry->row_theme ? 'theme-' . $entry->row_theme : '' }}">
-                        <td class="status-{{ $entry->service_status }}">{{ $entry->trainSet?->code }}</td>
+                        <td class="status-{{ $entry->service_status }} train-cell"><span class="train-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</span><span class="train-code">{{ $entry->trainSet?->code }}</span></td>
                         <td>{{ $entry->berth_no }}</td>
                         <td>{{ $entry->consist_type }}</td>
                         <td>{{ $entry->outbound_run_no }}</td>
@@ -181,7 +184,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(($day->note_blocks ?? []) as $block)
+                            @foreach($noteBlocks as $block)
                                 <tr>
                                     <td>{{ $block['time'] ?? '' }}</td>
                                     <td>{{ $block['from'] ?? '' }}</td>
@@ -223,7 +226,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(($day->handover_blocks ?? []) as $block)
+                            @foreach($handoverBlocks as $block)
                                 <tr>
                                     <td>{{ $block['set'] ?? '' }}</td>
                                     <td>{{ $block['target'] ?? '' }}</td>

@@ -234,6 +234,8 @@ class DailyPlanController extends Controller
             'day' => $day,
             'entries' => $day->entries,
             'trainSets' => $trainSets,
+            'noteBlocks' => $this->padBlocks($day->note_blocks ?? [], 8, ['time', 'from', 'location', 'arrow', 'to', 'flag']),
+            'handoverBlocks' => $this->padBlocks($day->handover_blocks ?? [], 6, ['set', 'target']),
             'date' => $date,
             'bookReference' => $date->format('Y'),
             'pageReference' => str_pad((string) $date->dayOfYear, 3, '0', STR_PAD_LEFT),
@@ -369,6 +371,26 @@ class DailyPlanController extends Controller
                 return $this->stringOrNull(is_string($value) ? $value : null) ?? '';
             }, is_array($row) ? $row : []);
         }, $blocks));
+    }
+
+    private function padBlocks(array $blocks, int $length, array $keys): array
+    {
+        $normalized = array_map(function ($row) use ($keys) {
+            $row = is_array($row) ? $row : [];
+
+            $normalizedRow = [];
+            foreach ($keys as $key) {
+                $normalizedRow[$key] = (string) ($row[$key] ?? '');
+            }
+
+            return $normalizedRow;
+        }, $blocks);
+
+        while (count($normalized) < $length) {
+            $normalized[] = array_fill_keys($keys, '');
+        }
+
+        return array_slice($normalized, 0, $length);
     }
 
     private function resolveDate(?string $date): Carbon

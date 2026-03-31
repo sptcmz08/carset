@@ -414,6 +414,19 @@
         min-height: 70px;
     }
 
+    .train-set-order {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        border-bottom: 1px dashed #64748b;
+        background: rgba(15, 23, 42, 0.08);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #334155;
+    }
+
     .train-set-stack .cell-select {
         font-weight: 700;
         min-height: 34px;
@@ -875,6 +888,7 @@
                             <tr class="{{ $selectedRowTheme !== 'none' ? 'row-theme-' . $selectedRowTheme : '' }}">
                                 <td class="train-set-cell train-status-{{ $selectedStatus }}" data-train-cell>
                                     <div class="train-set-stack">
+                                        <div class="train-set-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</div>
                                         <select name="entries[{{ $entry->id }}][train_set_id]" class="cell-select train-set-select">
                                             @foreach($trainSets as $trainSet)
                                                 <option
@@ -990,7 +1004,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach(old('note_blocks', $day->note_blocks ?? []) as $index => $block)
+                                    @foreach(collect(old('note_blocks', $noteBlocks))->pad(count($noteBlocks), ['time' => '', 'from' => '', 'location' => '', 'arrow' => '>>>', 'to' => '', 'flag' => ''])->all() as $index => $block)
                                         <tr>
                                             <td><input type="text" name="note_blocks[{{ $index }}][time]" value="{{ $block['time'] ?? '' }}"></td>
                                             <td><input type="text" name="note_blocks[{{ $index }}][from]" value="{{ $block['from'] ?? '' }}"></td>
@@ -1013,7 +1027,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach(old('handover_blocks', $day->handover_blocks ?? []) as $index => $block)
+                                    @foreach(collect(old('handover_blocks', $handoverBlocks))->pad(count($handoverBlocks), ['set' => '', 'target' => ''])->all() as $index => $block)
                                         <tr>
                                             <td><input type="text" name="handover_blocks[{{ $index }}][set]" value="{{ $block['set'] ?? '' }}"></td>
                                             <td><input type="text" name="handover_blocks[{{ $index }}][target]" value="{{ $block['target'] ?? '' }}"></td>
