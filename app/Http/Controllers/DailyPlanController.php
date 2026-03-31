@@ -235,6 +235,10 @@ class DailyPlanController extends Controller
             'entries' => $day->entries,
             'trainSets' => $trainSets,
             'date' => $date,
+            'bookReference' => $date->format('Y'),
+            'pageReference' => str_pad((string) $date->dayOfYear, 3, '0', STR_PAD_LEFT),
+            'dayName' => $date->locale('en')->translatedFormat('l'),
+            'displayMonthYear' => $date->locale('en')->translatedFormat('F Y'),
             'previousDate' => $date->copy()->subDay()->toDateString(),
             'nextDate' => $date->copy()->addDay()->toDateString(),
             'statusSummary' => [

@@ -205,7 +205,7 @@
 
     .paper-meta-grid {
         display: grid;
-        grid-template-columns: 68px 1fr 76px 1fr;
+        grid-template-columns: 68px 1fr 68px 1fr;
         border: 1px solid #111827;
         background: #fff;
     }
@@ -237,6 +237,45 @@
     .paper-meta-grid .value {
         font-weight: 700;
         background: #fff;
+    }
+
+    .paper-reference-bar {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr 0.9fr;
+        border-bottom: 1px solid #1e293b;
+        background: #fff;
+    }
+
+    .paper-reference-cell {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        border-right: 1px solid #1e293b;
+    }
+
+    .paper-reference-cell:last-child {
+        border-right: none;
+    }
+
+    .paper-reference-cell span,
+    .paper-reference-cell strong {
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        padding: 6px 10px;
+        font-size: 11px;
+        border-right: 1px solid #1e293b;
+    }
+
+    .paper-reference-cell span {
+        background: #e5e7eb;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .paper-reference-cell strong {
+        border-right: none;
+        justify-content: center;
     }
 
     .paper-toolbar {
@@ -565,6 +604,39 @@
         border-radius: 12px;
     }
 
+    .paper-signoff-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+    }
+
+    .paper-signoff-box {
+        border: 1px solid #64748b;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.96);
+        min-height: 74px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+    }
+
+    .paper-signoff-box strong {
+        padding: 8px 10px;
+        border-bottom: 1px solid #cbd5e1;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #334155;
+        letter-spacing: 0.05em;
+    }
+
+    .paper-signoff-box span {
+        display: flex;
+        align-items: end;
+        padding: 8px 10px;
+        color: #64748b;
+        font-size: 11px;
+    }
+
     @media print {
         body {
             background: #fff !important;
@@ -574,6 +646,7 @@
         .topbar,
         .service-book-toolbar,
         .service-book-summary,
+        .paper-helper-bar,
         .flash-message {
             display: none !important;
         }
@@ -606,10 +679,16 @@
         .service-book-summary,
         .paper-topline,
         .paper-header,
+        .paper-reference-bar,
         .paper-toolbar,
         .paper-footer,
-        .footer-block-grid {
+        .footer-block-grid,
+        .paper-signoff-grid {
             grid-template-columns: 1fr;
+        }
+
+        .paper-reference-cell {
+            grid-template-columns: 92px 1fr;
         }
     }
 </style>
@@ -714,11 +793,34 @@
 
                 <div class="paper-meta">
                     <div class="paper-meta-grid">
+                        <div class="label">Book</div>
+                        <div class="value">{{ $bookReference }}</div>
+                        <div class="label">Page</div>
+                        <div class="value">{{ $pageReference }}</div>
                         <div class="label">Date</div>
                         <div class="value">{{ $date->format('d') }}</div>
+                        <div class="label">Day</div>
+                        <div class="value">{{ $dayName }}</div>
                         <div class="label">Month</div>
-                        <div class="value">{{ $date->locale('en')->translatedFormat('F Y') }}</div>
+                        <div class="value">{{ $displayMonthYear }}</div>
+                        <div class="label">Issued</div>
+                        <div class="value">{{ $date->format('d/m/Y') }}</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="paper-reference-bar">
+                <div class="paper-reference-cell">
+                    <span>Book / Page</span>
+                    <strong>{{ $bookReference }} / {{ $pageReference }}</strong>
+                </div>
+                <div class="paper-reference-cell">
+                    <span>Service Day</span>
+                    <strong>{{ $dayName }}</strong>
+                </div>
+                <div class="paper-reference-cell">
+                    <span>Service Date</span>
+                    <strong>{{ $date->format('d M Y') }}</strong>
                 </div>
             </div>
 
@@ -919,6 +1021,20 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                    <div class="paper-signoff-grid">
+                        <div class="paper-signoff-box">
+                            <strong>Dispatcher</strong>
+                            <span>ลงชื่อ / เวลา</span>
+                        </div>
+                        <div class="paper-signoff-box">
+                            <strong>OCC Supervisor</strong>
+                            <span>ตรวจสอบ / รับทราบ</span>
+                        </div>
+                        <div class="paper-signoff-box">
+                            <strong>Handover</strong>
+                            <span>กะถัดไป / ผู้รับช่วง</span>
                         </div>
                     </div>
                 </div>

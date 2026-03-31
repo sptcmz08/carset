@@ -6,12 +6,13 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #111; }
         .sheet { border: 1px solid #111; }
-        .topline, .header, .toolbar, .footer { width: 100%; border-collapse: collapse; }
-        .topline td, .header td, .toolbar td, .footer td { border: 1px solid #111; padding: 6px; }
+        .topline, .header, .toolbar, .footer, .reference { width: 100%; border-collapse: collapse; }
+        .topline td, .header td, .toolbar td, .footer td, .reference td { border: 1px solid #111; padding: 6px; }
         .topline td { font-size: 8px; }
         .title { text-align: center; font-weight: bold; font-size: 18px; }
         .brand { font-size: 16px; font-weight: bold; color: #1e3a8a; }
         .meta { font-weight: bold; text-align: center; }
+        .meta-label { background: #e5e7eb; font-weight: bold; text-transform: uppercase; font-size: 8px; }
         .summary { width: 100%; border-collapse: collapse; }
         .summary td { border: 1px solid #111; padding: 8px; text-align: center; font-weight: bold; }
         .summary .available { background: #dcfce7; }
@@ -36,6 +37,10 @@
         .mini-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .mini-table th, .mini-table td { border: 1px solid #111; padding: 4px; font-size: 8px; }
         .notice { margin-top: 8px; padding: 6px; background: #fef08a; border: 1px solid #ca8a04; font-weight: bold; }
+        .signoff { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .signoff td { border: 1px solid #111; padding: 0; width: 33.33%; }
+        .signoff .head { padding: 6px; border-bottom: 1px solid #111; font-weight: bold; text-transform: uppercase; font-size: 8px; background: #f8fafc; }
+        .signoff .body { min-height: 34px; padding: 18px 6px 6px; color: #555; font-size: 8px; }
     </style>
 </head>
 <body>
@@ -58,13 +63,31 @@
                 <td style="width: 30%; padding: 0;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
-                            <td class="meta" style="border: 1px solid #111; width: 30%;">Date</td>
-                            <td class="meta" style="border: 1px solid #111; width: 20%;">{{ $date->format('d') }}</td>
-                            <td class="meta" style="border: 1px solid #111; width: 20%;">Month</td>
-                            <td class="meta" style="border: 1px solid #111; width: 30%;">{{ $date->locale('en')->translatedFormat('F Y') }}</td>
+                            <td class="meta-label" style="border: 1px solid #111; width: 22%;">Book</td>
+                            <td class="meta" style="border: 1px solid #111; width: 28%;">{{ $bookReference }}</td>
+                            <td class="meta-label" style="border: 1px solid #111; width: 22%;">Page</td>
+                            <td class="meta" style="border: 1px solid #111; width: 28%;">{{ $pageReference }}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-label" style="border: 1px solid #111;">Date</td>
+                            <td class="meta" style="border: 1px solid #111;">{{ $date->format('d') }}</td>
+                            <td class="meta-label" style="border: 1px solid #111;">Day</td>
+                            <td class="meta" style="border: 1px solid #111;">{{ $dayName }}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-label" style="border: 1px solid #111;">Month</td>
+                            <td class="meta" style="border: 1px solid #111;" colspan="3">{{ $displayMonthYear }}</td>
                         </tr>
                     </table>
                 </td>
+            </tr>
+        </table>
+
+        <table class="reference">
+            <tr>
+                <td style="width: 34%;"><strong>Book / Page:</strong> {{ $bookReference }} / {{ $pageReference }}</td>
+                <td style="width: 33%;"><strong>Service Day:</strong> {{ $dayName }}</td>
+                <td style="width: 33%;"><strong>Service Date:</strong> {{ $date->format('d M Y') }}</td>
             </tr>
         </table>
 
@@ -169,6 +192,22 @@
                                 </tr>
                             @endforeach
                         </tbody>
+                    </table>
+                    <table class="signoff">
+                        <tr>
+                            <td>
+                                <div class="head">Dispatcher</div>
+                                <div class="body">ลงชื่อ / เวลา</div>
+                            </td>
+                            <td>
+                                <div class="head">OCC Supervisor</div>
+                                <div class="body">ตรวจสอบ / รับทราบ</div>
+                            </td>
+                            <td>
+                                <div class="head">Handover</div>
+                                <div class="body">กะถัดไป / ผู้รับช่วง</div>
+                            </td>
+                        </tr>
                     </table>
                 </td>
                 <td style="width: 25%; vertical-align: top;">
