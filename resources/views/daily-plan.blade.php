@@ -549,6 +549,31 @@
         min-height: 32px;
         font-size: 10px;
         font-weight: 700;
+        transition: color 0.15s ease;
+    }
+
+    .service-status-select.status-available {
+        color: #15803d;
+    }
+
+    .service-status-select.status-warning {
+        color: #a16207;
+    }
+
+    .service-status-select.status-out_of_service {
+        color: #b91c1c;
+    }
+
+    .service-status-select option[value="available"] {
+        color: #15803d;
+    }
+
+    .service-status-select option[value="warning"] {
+        color: #a16207;
+    }
+
+    .service-status-select option[value="out_of_service"] {
+        color: #b91c1c;
     }
 
     .service-status-note {
@@ -1279,6 +1304,11 @@ document.addEventListener('DOMContentLoaded', function () {
         warning: 'train-status-warning',
         out_of_service: 'train-status-out_of_service',
     };
+    const statusSelectClassMap = {
+        available: 'status-available',
+        warning: 'status-warning',
+        out_of_service: 'status-out_of_service',
+    };
 
     const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
 
@@ -1351,7 +1381,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const applyStatusColor = () => {
             Object.values(statusClassMap).forEach((className) => trainCell.classList.remove(className));
+            Object.values(statusSelectClassMap).forEach((className) => statusSelect.classList.remove(className));
             trainCell.classList.add(statusClassMap[statusSelect.value] || statusClassMap.available);
+            statusSelect.classList.add(statusSelectClassMap[statusSelect.value] || statusSelectClassMap.available);
         };
 
         const syncStatusFromHealth = (force = false) => {
