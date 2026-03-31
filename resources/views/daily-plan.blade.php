@@ -14,26 +14,13 @@
     }
 
     .paper-fit-stage {
-        --paper-scale: 1;
         width: 100%;
-        overflow: hidden;
-    }
-
-    .paper-fit-canvas {
-        width: max-content;
-        transform-origin: top center;
-        transform: scale(var(--paper-scale));
-        margin: 0 auto;
-        will-change: transform;
-    }
-
-    .paper-fit-stage.is-disabled {
         overflow-x: auto;
     }
 
-    .paper-fit-stage.is-disabled .paper-fit-canvas {
+    .paper-fit-canvas {
         width: 100%;
-        transform: none;
+        margin: 0 auto;
     }
 
     .service-book-toolbar {
@@ -729,7 +716,7 @@
         .paper-fit-stage,
         .paper-fit-canvas {
             overflow: visible !important;
-            transform: none !important;
+            zoom: 1 !important;
             width: 100% !important;
             height: auto !important;
         }
@@ -768,6 +755,39 @@
 
         .paper-reference-cell {
             grid-template-columns: 92px 1fr;
+        }
+    }
+
+    @media (min-width: 1025px) and (max-width: 1366px) {
+        .paper-fit-stage {
+            overflow: visible;
+        }
+
+        .paper-fit-canvas {
+            zoom: 0.68;
+            width: calc(100% / 0.68);
+        }
+    }
+
+    @media (min-width: 1367px) and (max-width: 1536px) {
+        .paper-fit-stage {
+            overflow: visible;
+        }
+
+        .paper-fit-canvas {
+            zoom: 0.76;
+            width: calc(100% / 0.76);
+        }
+    }
+
+    @media (min-width: 1537px) and (max-width: 1720px) {
+        .paper-fit-stage {
+            overflow: visible;
+        }
+
+        .paper-fit-canvas {
+            zoom: 0.84;
+            width: calc(100% / 0.84);
         }
     }
 </style>
@@ -1172,50 +1192,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const fitStage = document.getElementById('paper-fit-stage');
-    const fitCanvas = document.getElementById('paper-fit-canvas');
-    const paperCard = document.getElementById('paper-card');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
         out_of_service: 'train-status-out_of_service',
     };
-
-    const applyPaperFit = () => {
-        if (! fitStage || ! fitCanvas || ! paperCard || window.matchMedia('print').matches) {
-            return;
-        }
-
-        const allowFit = window.innerWidth > 1280;
-
-        if (! allowFit) {
-            fitStage.classList.add('is-disabled');
-            fitStage.style.height = 'auto';
-            fitStage.style.removeProperty('--paper-scale');
-            return;
-        }
-
-        fitStage.classList.remove('is-disabled');
-
-        const availableWidth = fitStage.clientWidth;
-        const naturalWidth = paperCard.scrollWidth;
-        const naturalHeight = paperCard.scrollHeight;
-        const scale = Math.min(1, availableWidth / naturalWidth);
-
-        fitStage.style.setProperty('--paper-scale', scale.toFixed(4));
-        fitStage.style.height = `${naturalHeight * scale}px`;
-    };
-
-    const fitObserver = typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(() => applyPaperFit())
-        : null;
-
-    if (fitObserver && paperCard) {
-        fitObserver.observe(paperCard);
-    }
-
-    window.addEventListener('resize', applyPaperFit);
-    applyPaperFit();
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
         const trainSetSelect = row.querySelector('.train-set-select');
@@ -1334,14 +1315,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.syncTrainDefaults(false);
                 }
             });
-
-            applyPaperFit();
         });
     }
-
-    document.querySelectorAll('.cell-textarea').forEach((textarea) => {
-        textarea.addEventListener('input', applyPaperFit);
-    });
 });
 </script>
 @endsection
