@@ -336,6 +336,7 @@
         border-collapse: collapse;
         table-layout: fixed;
         background: rgba(255,255,255,0.96);
+        font-variant-numeric: tabular-nums;
     }
 
     .service-plan-table th,
@@ -369,6 +370,10 @@
         background: rgba(255,255,255,0.94);
     }
 
+    .service-plan-table tbody tr {
+        height: 56px;
+    }
+
     .service-plan-table tbody tr:nth-child(even) td {
         background: rgba(248, 250, 252, 0.96);
     }
@@ -384,6 +389,23 @@
         padding: 6px 4px;
         min-height: 36px;
         font-family: inherit;
+    }
+
+    .service-plan-table td:nth-child(4) .cell-input,
+    .service-plan-table td:nth-child(5) .cell-input,
+    .service-plan-table td:nth-child(6) .cell-input,
+    .service-plan-table td:nth-child(7) .cell-input,
+    .service-plan-table td:nth-child(8) .cell-input,
+    .service-plan-table td:nth-child(9) .cell-input,
+    .service-plan-table td:nth-child(10) .cell-input,
+    .service-plan-table td:nth-child(11) .cell-input,
+    .service-plan-table td:nth-child(12) .cell-input,
+    .service-plan-table td:nth-child(13) .cell-input,
+    .service-plan-table td:nth-child(15) .cell-input,
+    .service-plan-table td:nth-child(16) .cell-input {
+        font-family: 'Inter', 'Sarabun', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.02em;
     }
 
     .cell-input,
@@ -562,6 +584,7 @@
         width: 100%;
         border-collapse: collapse;
         background: rgba(255,255,255,0.96);
+        table-layout: fixed;
     }
 
     .footer-mini-table th,
@@ -569,6 +592,10 @@
         border: 1px solid #64748b;
         padding: 6px 8px;
         font-size: 12px;
+    }
+
+    .footer-mini-table tbody tr {
+        height: 34px;
     }
 
     .footer-mini-table th {
@@ -850,32 +877,52 @@
 
             <div class="paper-table-wrap">
                 <table class="service-plan-table">
+                    <colgroup>
+                        <col style="width: 140px;">
+                        <col style="width: 95px;">
+                        <col style="width: 66px;">
+                        <col style="width: 88px;">
+                        <col style="width: 82px;">
+                        <col style="width: 82px;">
+                        <col style="width: 82px;">
+                        <col style="width: 92px;">
+                        <col style="width: 82px;">
+                        <col style="width: 82px;">
+                        <col style="width: 78px;">
+                        <col style="width: 92px;">
+                        <col style="width: 88px;">
+                        <col style="width: 96px;">
+                        <col style="width: 82px;">
+                        <col style="width: 88px;">
+                        <col style="width: 90px;">
+                        <col style="width: 280px;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th rowspan="2" style="width: 140px;">Train Set No.</th>
-                            <th rowspan="2" style="width: 95px;">Berth No.</th>
-                            <th rowspan="2" style="width: 66px;">Type</th>
-                            <th rowspan="2" style="width: 88px;">Run No.</th>
+                            <th rowspan="2">Train Set No.</th>
+                            <th rowspan="2">Berth No.</th>
+                            <th rowspan="2">Type</th>
+                            <th rowspan="2">Run No.</th>
                             <th colspan="4" class="group-head">First Contact</th>
                             <th colspan="2" class="group-head">Dep. Time</th>
                             <th colspan="2" class="group-head">KTW</th>
-                            <th rowspan="2" style="width: 88px;">Run No.</th>
+                            <th rowspan="2">Run No.</th>
                             <th colspan="2" class="group-head">End</th>
-                            <th rowspan="2" style="width: 88px;">End No.</th>
-                            <th rowspan="2" style="width: 90px;">End Depot</th>
-                            <th rowspan="2" style="width: 280px;">Special Instructions</th>
+                            <th rowspan="2">End No.</th>
+                            <th rowspan="2">End Depot</th>
+                            <th rowspan="2">Special Instructions</th>
                         </tr>
                         <tr>
-                            <th class="small-head" style="width: 82px;">Plan</th>
-                            <th class="small-head" style="width: 82px;">Cab 1</th>
-                            <th class="small-head" style="width: 82px;">Cab 4/6</th>
-                            <th class="small-head" style="width: 92px;">Brake Test</th>
-                            <th class="small-head" style="width: 82px;">Plan</th>
-                            <th class="small-head" style="width: 82px;">Actual</th>
-                            <th class="small-head" style="width: 78px;">Platform</th>
-                            <th class="small-head" style="width: 92px;">Next Depart</th>
-                            <th class="small-head" style="width: 96px;">Station</th>
-                            <th class="small-head" style="width: 82px;">Time</th>
+                            <th class="small-head">Plan</th>
+                            <th class="small-head">Cab 1</th>
+                            <th class="small-head">Cab 4/6</th>
+                            <th class="small-head">Brake Test</th>
+                            <th class="small-head">Plan</th>
+                            <th class="small-head">Actual</th>
+                            <th class="small-head">Platform</th>
+                            <th class="small-head">Next Depart</th>
+                            <th class="small-head">Station</th>
+                            <th class="small-head">Time</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -18,9 +18,10 @@
         .summary .available { background: #dcfce7; }
         .summary .warning { background: #fef9c3; }
         .summary .out { background: #fee2e2; }
-        .plan-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .plan-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
         .plan-table th, .plan-table td { border: 1px solid #111; padding: 3px; text-align: center; vertical-align: middle; }
         .plan-table th { background: #e5e7eb; font-size: 8px; }
+        .plan-table tbody tr { height: 28px; }
         .group { background: #d1d5db; }
         .left { text-align: left; }
         .train-cell { padding: 0 !important; }
@@ -37,8 +38,9 @@
         .theme-yellow td { background: #fef3c7; }
         .notes { min-height: 110px; white-space: pre-wrap; }
         .legend-box { border: 1px solid #111; padding: 6px; margin-bottom: 8px; }
-        .mini-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .mini-table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
         .mini-table th, .mini-table td { border: 1px solid #111; padding: 4px; font-size: 8px; }
+        .mini-table tbody tr { height: 18px; }
         .notice { margin-top: 8px; padding: 6px; background: #fef08a; border: 1px solid #ca8a04; font-weight: bold; }
         .signoff { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .signoff td { border: 1px solid #111; padding: 0; width: 33.33%; }
@@ -110,20 +112,40 @@
         </table>
 
         <table class="plan-table">
+            <colgroup>
+                <col style="width: 7%;">
+                <col style="width: 5%;">
+                <col style="width: 3%;">
+                <col style="width: 4%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3%;">
+                <col style="width: 3%;">
+                <col style="width: 4%;">
+                <col style="width: 3.5%;">
+                <col style="width: 3.5%;">
+                <col style="width: 4%;">
+                <col style="width: 5%;">
+                <col style="width: 29%;">
+            </colgroup>
             <thead>
                 <tr>
-                    <th rowspan="2" style="width: 7%;">Train Set No.</th>
-                    <th rowspan="2" style="width: 5%;">Berth No.</th>
-                    <th rowspan="2" style="width: 3%;">Type</th>
-                    <th rowspan="2" style="width: 4%;">Run No.</th>
-                    <th colspan="4" class="group" style="width: 14%;">First Contact</th>
-                    <th colspan="2" class="group" style="width: 7%;">Dep. Time</th>
-                    <th colspan="2" class="group" style="width: 6%;">KTW</th>
-                    <th rowspan="2" style="width: 4%;">Run No.</th>
-                    <th colspan="2" class="group" style="width: 7%;">End</th>
-                    <th rowspan="2" style="width: 4%;">End No.</th>
-                    <th rowspan="2" style="width: 5%;">End Depot</th>
-                    <th rowspan="2" style="width: 29%;">Special Instructions</th>
+                    <th rowspan="2">Train Set No.</th>
+                    <th rowspan="2">Berth No.</th>
+                    <th rowspan="2">Type</th>
+                    <th rowspan="2">Run No.</th>
+                    <th colspan="4" class="group">First Contact</th>
+                    <th colspan="2" class="group">Dep. Time</th>
+                    <th colspan="2" class="group">KTW</th>
+                    <th rowspan="2">Run No.</th>
+                    <th colspan="2" class="group">End</th>
+                    <th rowspan="2">End No.</th>
+                    <th rowspan="2">End Depot</th>
+                    <th rowspan="2">Special Instructions</th>
                 </tr>
                 <tr>
                     <th>Plan</th>
