@@ -3,10 +3,37 @@
 
 @section('content')
 <style>
+    .page-content {
+        padding-inline: 24px;
+    }
+
     .service-book-shell {
         display: flex;
         flex-direction: column;
         gap: 20px;
+    }
+
+    .paper-fit-stage {
+        --paper-scale: 1;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .paper-fit-canvas {
+        width: max-content;
+        transform-origin: top center;
+        transform: scale(var(--paper-scale));
+        margin: 0 auto;
+        will-change: transform;
+    }
+
+    .paper-fit-stage.is-disabled {
+        overflow-x: auto;
+    }
+
+    .paper-fit-stage.is-disabled .paper-fit-canvas {
+        width: 100%;
+        transform: none;
     }
 
     .service-book-toolbar {
@@ -699,6 +726,14 @@
             padding: 0 !important;
         }
 
+        .paper-fit-stage,
+        .paper-fit-canvas {
+            overflow: visible !important;
+            transform: none !important;
+            width: 100% !important;
+            height: auto !important;
+        }
+
         .paper-card {
             box-shadow: none;
             border-radius: 0;
@@ -716,6 +751,10 @@
     }
 
     @media (max-width: 1024px) {
+        .page-content {
+            padding-inline: 16px;
+        }
+
         .service-book-summary,
         .paper-topline,
         .paper-header,
@@ -811,315 +850,319 @@
         @csrf
         <input type="hidden" name="service_date" value="{{ $date->toDateString() }}">
 
-        <div class="paper-card">
-            <div class="paper-topline">
-                <div>FM-OCD-014</div>
-                <div class="paper-doc-center">Trainset Service Plan</div>
-                <div class="paper-doc-right">
-                    <span>Rev: 00</span>
-                    <span>Eff. Date: 6 ก.ย. 2565</span>
-                </div>
-            </div>
-
-            <div class="paper-header">
-                <div>
-                    <div class="paper-brand paper-brand-mark">SRTET</div>
-                    <div class="paper-subtitle">SRT Electrified Train จำกัด</div>
-                </div>
-
-                <div class="paper-title">
-                    <input type="text" name="header_title" value="{{ old('header_title', $day->header_title) }}">
-                </div>
-
-                <div class="paper-meta">
-                    <div class="paper-meta-grid">
-                        <div class="label">Book</div>
-                        <div class="value">{{ $bookReference }}</div>
-                        <div class="label">Page</div>
-                        <div class="value">{{ $pageReference }}</div>
-                        <div class="label">Date</div>
-                        <div class="value">{{ $date->format('d') }}</div>
-                        <div class="label">Day</div>
-                        <div class="value">{{ $dayName }}</div>
-                        <div class="label">Month</div>
-                        <div class="value">{{ $displayMonthYear }}</div>
-                        <div class="label">Issued</div>
-                        <div class="value">{{ $date->format('d/m/Y') }}</div>
+        <div class="paper-fit-stage" id="paper-fit-stage">
+            <div class="paper-fit-canvas" id="paper-fit-canvas">
+                <div class="paper-card" id="paper-card">
+                    <div class="paper-topline">
+                        <div>FM-OCD-014</div>
+                        <div class="paper-doc-center">Trainset Service Plan</div>
+                        <div class="paper-doc-right">
+                            <span>Rev: 00</span>
+                            <span>Eff. Date: 6 ก.ย. 2565</span>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="paper-reference-bar">
-                <div class="paper-reference-cell">
-                    <span>Book / Page</span>
-                    <strong>{{ $bookReference }} / {{ $pageReference }}</strong>
-                </div>
-                <div class="paper-reference-cell">
-                    <span>Service Day</span>
-                    <strong>{{ $dayName }}</strong>
-                </div>
-                <div class="paper-reference-cell">
-                    <span>Service Date</span>
-                    <strong>{{ $date->format('d M Y') }}</strong>
-                </div>
-            </div>
+                    <div class="paper-header">
+                        <div>
+                            <div class="paper-brand paper-brand-mark">SRTET</div>
+                            <div class="paper-subtitle">SRT Electrified Train จำกัด</div>
+                        </div>
 
-            <div class="paper-toolbar">
-                <div class="field-row">
-                    <label>Timetable</label>
-                    <input type="text" name="timetable_label" value="{{ old('timetable_label', $day->timetable_label) }}">
-                </div>
-                <div class="field-row compact">
-                    <label>Page Flow</label>
-                    <input type="text" value="{{ $previousDate }}  →  {{ $date->toDateString() }}  →  {{ $nextDate }}" readonly>
-                </div>
-            </div>
+                        <div class="paper-title">
+                            <input type="text" name="header_title" value="{{ old('header_title', $day->header_title) }}">
+                        </div>
 
-            <div class="paper-table-wrap">
-                <table class="service-plan-table">
-                    <colgroup>
-                        <col style="width: 140px;">
-                        <col style="width: 95px;">
-                        <col style="width: 66px;">
-                        <col style="width: 88px;">
-                        <col style="width: 82px;">
-                        <col style="width: 82px;">
-                        <col style="width: 82px;">
-                        <col style="width: 92px;">
-                        <col style="width: 82px;">
-                        <col style="width: 82px;">
-                        <col style="width: 78px;">
-                        <col style="width: 92px;">
-                        <col style="width: 88px;">
-                        <col style="width: 96px;">
-                        <col style="width: 82px;">
-                        <col style="width: 88px;">
-                        <col style="width: 90px;">
-                        <col style="width: 280px;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th rowspan="2">Train Set No.</th>
-                            <th rowspan="2">Berth No.</th>
-                            <th rowspan="2">Type</th>
-                            <th rowspan="2">Run No.</th>
-                            <th colspan="4" class="group-head">First Contact</th>
-                            <th colspan="2" class="group-head">Dep. Time</th>
-                            <th colspan="2" class="group-head">KTW</th>
-                            <th rowspan="2">Run No.</th>
-                            <th colspan="2" class="group-head">End</th>
-                            <th rowspan="2">End No.</th>
-                            <th rowspan="2">End Depot</th>
-                            <th rowspan="2">Special Instructions</th>
-                        </tr>
-                        <tr>
-                            <th class="small-head">Plan</th>
-                            <th class="small-head">Cab 1</th>
-                            <th class="small-head">Cab 4/6</th>
-                            <th class="small-head">Brake Test</th>
-                            <th class="small-head">Plan</th>
-                            <th class="small-head">Actual</th>
-                            <th class="small-head">Platform</th>
-                            <th class="small-head">Next Depart</th>
-                            <th class="small-head">Station</th>
-                            <th class="small-head">Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($entries as $entry)
-                            @php
-                                $selectedTrainSet = old("entries.{$entry->id}.train_set_id", $entry->train_set_id);
-                                $selectedStatus = old("entries.{$entry->id}.service_status", $entry->service_status);
-                                $selectedRowTheme = old("entries.{$entry->id}.row_theme", $entry->row_theme) ?? 'none';
-                            @endphp
-                            <tr class="{{ $selectedRowTheme !== 'none' ? 'row-theme-' . $selectedRowTheme : '' }}">
-                                <td class="train-set-cell train-status-{{ $selectedStatus }}" data-train-cell>
-                                    <div class="train-set-stack">
-                                        <div class="train-set-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</div>
-                                        <select name="entries[{{ $entry->id }}][train_set_id]" class="cell-select train-set-select">
-                                            @foreach($trainSets as $trainSet)
-                                                <option
-                                                    value="{{ $trainSet->id }}"
-                                                    data-default-type="{{ $trainSet->default_consist_type }}"
-                                                    data-default-berth="{{ $trainSet->default_berth_no }}"
-                                                    data-default-platform="{{ $trainSet->default_ktw_platform }}"
-                                                    data-default-end-station="{{ $trainSet->default_end_station }}"
-                                                    data-default-end-no="{{ $trainSet->default_end_no }}"
-                                                    data-default-end-depot="{{ $trainSet->default_end_depot }}"
-                                                    data-default-special="{{ e($trainSet->default_special_instructions) }}"
-                                                    data-default-out-run="{{ $trainSet->default_outbound_run_no }}"
-                                                    data-default-fc-plan="{{ $trainSet->default_first_contact_plan }}"
-                                                    data-default-dep-plan="{{ $trainSet->default_departure_plan_time }}"
-                                                    data-default-next-depart="{{ $trainSet->default_ktw_next_depart_time }}"
-                                                    data-default-in-run="{{ $trainSet->default_inbound_run_no }}"
-                                                    data-default-end-time="{{ $trainSet->default_end_time }}"
-                                                    data-default-row-theme="{{ $trainSet->default_row_theme }}"
-                                                    @selected((string) $selectedTrainSet === (string) $trainSet->id)
-                                                >{{ $trainSet->code }}</option>
-                                            @endforeach
-                                        </select>
-                                        <select name="entries[{{ $entry->id }}][service_status]" class="cell-select service-status-select">
-                                            <option value="available" @selected($selectedStatus === 'available')>เขียว • พร้อมใช้</option>
-                                            <option value="warning" @selected($selectedStatus === 'warning')>เหลือง • ใกล้ซ่อม</option>
-                                            <option value="out_of_service" @selected($selectedStatus === 'out_of_service')>แดง • งดใช้</option>
-                                        </select>
-                                        <select name="entries[{{ $entry->id }}][row_theme]" class="cell-select row-theme-select">
-                                            @foreach($rowThemes as $value => $label)
-                                                <option value="{{ $value }}" @selected($selectedRowTheme === $value)>{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </td>
-                                <td>
-                                    <input type="text" name="entries[{{ $entry->id }}][berth_no]" value="{{ old("entries.{$entry->id}.berth_no", $entry->berth_no) }}" class="cell-input berth-input" list="berth-options">
-                                </td>
-                                <td>
-                                    <select name="entries[{{ $entry->id }}][consist_type]" class="cell-select consist-type-select">
-                                        <option value="4" @selected(old("entries.{$entry->id}.consist_type", $entry->consist_type) === '4')>4</option>
-                                        <option value="6" @selected(old("entries.{$entry->id}.consist_type", $entry->consist_type) === '6')>6</option>
-                                    </select>
-                                </td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][outbound_run_no]" value="{{ old("entries.{$entry->id}.outbound_run_no", $entry->outbound_run_no) }}" class="cell-input out-run-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][first_contact_plan]" value="{{ old("entries.{$entry->id}.first_contact_plan", $entry->first_contact_plan) }}" class="cell-input fc-plan-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][cab_one_time]" value="{{ old("entries.{$entry->id}.cab_one_time", $entry->cab_one_time) }}" class="cell-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][cab_four_six_time]" value="{{ old("entries.{$entry->id}.cab_four_six_time", $entry->cab_four_six_time) }}" class="cell-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][brake_test_time]" value="{{ old("entries.{$entry->id}.brake_test_time", $entry->brake_test_time) }}" class="cell-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][departure_plan_time]" value="{{ old("entries.{$entry->id}.departure_plan_time", $entry->departure_plan_time) }}" class="cell-input dep-plan-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][departure_actual_time]" value="{{ old("entries.{$entry->id}.departure_actual_time", $entry->departure_actual_time) }}" class="cell-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][ktw_platform]" value="{{ old("entries.{$entry->id}.ktw_platform", $entry->ktw_platform) }}" class="cell-input ktw-platform-input" list="platform-options"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][ktw_next_depart_time]" value="{{ old("entries.{$entry->id}.ktw_next_depart_time", $entry->ktw_next_depart_time) }}" class="cell-input next-depart-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][inbound_run_no]" value="{{ old("entries.{$entry->id}.inbound_run_no", $entry->inbound_run_no) }}" class="cell-input in-run-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][end_station]" value="{{ old("entries.{$entry->id}.end_station", $entry->end_station) }}" class="cell-input end-station-input" list="end-station-options"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][end_time]" value="{{ old("entries.{$entry->id}.end_time", $entry->end_time) }}" class="cell-input end-time-input"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][end_no]" value="{{ old("entries.{$entry->id}.end_no", $entry->end_no) }}" class="cell-input end-no-input" list="end-no-options"></td>
-                                <td><input type="text" name="entries[{{ $entry->id }}][end_depot]" value="{{ old("entries.{$entry->id}.end_depot", $entry->end_depot) }}" class="cell-input end-depot-input" list="end-depot-options"></td>
-                                <td>
-                                    <textarea name="entries[{{ $entry->id }}][special_instructions]" class="cell-textarea special-instructions-input">{{ old("entries.{$entry->id}.special_instructions", $entry->special_instructions) }}</textarea>
-                                </td>
-                            </tr>
+                        <div class="paper-meta">
+                            <div class="paper-meta-grid">
+                                <div class="label">Book</div>
+                                <div class="value">{{ $bookReference }}</div>
+                                <div class="label">Page</div>
+                                <div class="value">{{ $pageReference }}</div>
+                                <div class="label">Date</div>
+                                <div class="value">{{ $date->format('d') }}</div>
+                                <div class="label">Day</div>
+                                <div class="value">{{ $dayName }}</div>
+                                <div class="label">Month</div>
+                                <div class="value">{{ $displayMonthYear }}</div>
+                                <div class="label">Issued</div>
+                                <div class="value">{{ $date->format('d/m/Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="paper-reference-bar">
+                        <div class="paper-reference-cell">
+                            <span>Book / Page</span>
+                            <strong>{{ $bookReference }} / {{ $pageReference }}</strong>
+                        </div>
+                        <div class="paper-reference-cell">
+                            <span>Service Day</span>
+                            <strong>{{ $dayName }}</strong>
+                        </div>
+                        <div class="paper-reference-cell">
+                            <span>Service Date</span>
+                            <strong>{{ $date->format('d M Y') }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="paper-toolbar">
+                        <div class="field-row">
+                            <label>Timetable</label>
+                            <input type="text" name="timetable_label" value="{{ old('timetable_label', $day->timetable_label) }}">
+                        </div>
+                        <div class="field-row compact">
+                            <label>Page Flow</label>
+                            <input type="text" value="{{ $previousDate }}  →  {{ $date->toDateString() }}  →  {{ $nextDate }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="paper-table-wrap">
+                        <table class="service-plan-table">
+                            <colgroup>
+                                <col style="width: 140px;">
+                                <col style="width: 95px;">
+                                <col style="width: 66px;">
+                                <col style="width: 88px;">
+                                <col style="width: 82px;">
+                                <col style="width: 82px;">
+                                <col style="width: 82px;">
+                                <col style="width: 92px;">
+                                <col style="width: 82px;">
+                                <col style="width: 82px;">
+                                <col style="width: 78px;">
+                                <col style="width: 92px;">
+                                <col style="width: 88px;">
+                                <col style="width: 96px;">
+                                <col style="width: 82px;">
+                                <col style="width: 88px;">
+                                <col style="width: 90px;">
+                                <col style="width: 280px;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Train Set No.</th>
+                                    <th rowspan="2">Berth No.</th>
+                                    <th rowspan="2">Type</th>
+                                    <th rowspan="2">Run No.</th>
+                                    <th colspan="4" class="group-head">First Contact</th>
+                                    <th colspan="2" class="group-head">Dep. Time</th>
+                                    <th colspan="2" class="group-head">KTW</th>
+                                    <th rowspan="2">Run No.</th>
+                                    <th colspan="2" class="group-head">End</th>
+                                    <th rowspan="2">End No.</th>
+                                    <th rowspan="2">End Depot</th>
+                                    <th rowspan="2">Special Instructions</th>
+                                </tr>
+                                <tr>
+                                    <th class="small-head">Plan</th>
+                                    <th class="small-head">Cab 1</th>
+                                    <th class="small-head">Cab 4/6</th>
+                                    <th class="small-head">Brake Test</th>
+                                    <th class="small-head">Plan</th>
+                                    <th class="small-head">Actual</th>
+                                    <th class="small-head">Platform</th>
+                                    <th class="small-head">Next Depart</th>
+                                    <th class="small-head">Station</th>
+                                    <th class="small-head">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($entries as $entry)
+                                    @php
+                                        $selectedTrainSet = old("entries.{$entry->id}.train_set_id", $entry->train_set_id);
+                                        $selectedStatus = old("entries.{$entry->id}.service_status", $entry->service_status);
+                                        $selectedRowTheme = old("entries.{$entry->id}.row_theme", $entry->row_theme) ?? 'none';
+                                    @endphp
+                                    <tr class="{{ $selectedRowTheme !== 'none' ? 'row-theme-' . $selectedRowTheme : '' }}">
+                                        <td class="train-set-cell train-status-{{ $selectedStatus }}" data-train-cell>
+                                            <div class="train-set-stack">
+                                                <div class="train-set-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</div>
+                                                <select name="entries[{{ $entry->id }}][train_set_id]" class="cell-select train-set-select">
+                                                    @foreach($trainSets as $trainSet)
+                                                        <option
+                                                            value="{{ $trainSet->id }}"
+                                                            data-default-type="{{ $trainSet->default_consist_type }}"
+                                                            data-default-berth="{{ $trainSet->default_berth_no }}"
+                                                            data-default-platform="{{ $trainSet->default_ktw_platform }}"
+                                                            data-default-end-station="{{ $trainSet->default_end_station }}"
+                                                            data-default-end-no="{{ $trainSet->default_end_no }}"
+                                                            data-default-end-depot="{{ $trainSet->default_end_depot }}"
+                                                            data-default-special="{{ e($trainSet->default_special_instructions) }}"
+                                                            data-default-out-run="{{ $trainSet->default_outbound_run_no }}"
+                                                            data-default-fc-plan="{{ $trainSet->default_first_contact_plan }}"
+                                                            data-default-dep-plan="{{ $trainSet->default_departure_plan_time }}"
+                                                            data-default-next-depart="{{ $trainSet->default_ktw_next_depart_time }}"
+                                                            data-default-in-run="{{ $trainSet->default_inbound_run_no }}"
+                                                            data-default-end-time="{{ $trainSet->default_end_time }}"
+                                                            data-default-row-theme="{{ $trainSet->default_row_theme }}"
+                                                            @selected((string) $selectedTrainSet === (string) $trainSet->id)
+                                                        >{{ $trainSet->code }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <select name="entries[{{ $entry->id }}][service_status]" class="cell-select service-status-select">
+                                                    <option value="available" @selected($selectedStatus === 'available')>เขียว • พร้อมใช้</option>
+                                                    <option value="warning" @selected($selectedStatus === 'warning')>เหลือง • ใกล้ซ่อม</option>
+                                                    <option value="out_of_service" @selected($selectedStatus === 'out_of_service')>แดง • งดใช้</option>
+                                                </select>
+                                                <select name="entries[{{ $entry->id }}][row_theme]" class="cell-select row-theme-select">
+                                                    @foreach($rowThemes as $value => $label)
+                                                        <option value="{{ $value }}" @selected($selectedRowTheme === $value)>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="text" name="entries[{{ $entry->id }}][berth_no]" value="{{ old("entries.{$entry->id}.berth_no", $entry->berth_no) }}" class="cell-input berth-input" list="berth-options">
+                                        </td>
+                                        <td>
+                                            <select name="entries[{{ $entry->id }}][consist_type]" class="cell-select consist-type-select">
+                                                <option value="4" @selected(old("entries.{$entry->id}.consist_type", $entry->consist_type) === '4')>4</option>
+                                                <option value="6" @selected(old("entries.{$entry->id}.consist_type", $entry->consist_type) === '6')>6</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][outbound_run_no]" value="{{ old("entries.{$entry->id}.outbound_run_no", $entry->outbound_run_no) }}" class="cell-input out-run-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][first_contact_plan]" value="{{ old("entries.{$entry->id}.first_contact_plan", $entry->first_contact_plan) }}" class="cell-input fc-plan-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][cab_one_time]" value="{{ old("entries.{$entry->id}.cab_one_time", $entry->cab_one_time) }}" class="cell-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][cab_four_six_time]" value="{{ old("entries.{$entry->id}.cab_four_six_time", $entry->cab_four_six_time) }}" class="cell-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][brake_test_time]" value="{{ old("entries.{$entry->id}.brake_test_time", $entry->brake_test_time) }}" class="cell-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][departure_plan_time]" value="{{ old("entries.{$entry->id}.departure_plan_time", $entry->departure_plan_time) }}" class="cell-input dep-plan-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][departure_actual_time]" value="{{ old("entries.{$entry->id}.departure_actual_time", $entry->departure_actual_time) }}" class="cell-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][ktw_platform]" value="{{ old("entries.{$entry->id}.ktw_platform", $entry->ktw_platform) }}" class="cell-input ktw-platform-input" list="platform-options"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][ktw_next_depart_time]" value="{{ old("entries.{$entry->id}.ktw_next_depart_time", $entry->ktw_next_depart_time) }}" class="cell-input next-depart-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][inbound_run_no]" value="{{ old("entries.{$entry->id}.inbound_run_no", $entry->inbound_run_no) }}" class="cell-input in-run-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][end_station]" value="{{ old("entries.{$entry->id}.end_station", $entry->end_station) }}" class="cell-input end-station-input" list="end-station-options"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][end_time]" value="{{ old("entries.{$entry->id}.end_time", $entry->end_time) }}" class="cell-input end-time-input"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][end_no]" value="{{ old("entries.{$entry->id}.end_no", $entry->end_no) }}" class="cell-input end-no-input" list="end-no-options"></td>
+                                        <td><input type="text" name="entries[{{ $entry->id }}][end_depot]" value="{{ old("entries.{$entry->id}.end_depot", $entry->end_depot) }}" class="cell-input end-depot-input" list="end-depot-options"></td>
+                                        <td>
+                                            <textarea name="entries[{{ $entry->id }}][special_instructions]" class="cell-textarea special-instructions-input">{{ old("entries.{$entry->id}.special_instructions", $entry->special_instructions) }}</textarea>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <datalist id="berth-options">
+                        @foreach($masterOptions['berths'] as $value)
+                            <option value="{{ $value }}"></option>
                         @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    </datalist>
+                    <datalist id="platform-options">
+                        @foreach($masterOptions['platforms'] as $value)
+                            <option value="{{ $value }}"></option>
+                        @endforeach
+                    </datalist>
+                    <datalist id="end-station-options">
+                        @foreach($masterOptions['endStations'] as $value)
+                            <option value="{{ $value }}"></option>
+                        @endforeach
+                    </datalist>
+                    <datalist id="end-no-options">
+                        @foreach($masterOptions['endNos'] as $value)
+                            <option value="{{ $value }}"></option>
+                        @endforeach
+                    </datalist>
+                    <datalist id="end-depot-options">
+                        @foreach($masterOptions['depots'] as $value)
+                            <option value="{{ $value }}"></option>
+                        @endforeach
+                    </datalist>
 
-            <datalist id="berth-options">
-                @foreach($masterOptions['berths'] as $value)
-                    <option value="{{ $value }}"></option>
-                @endforeach
-            </datalist>
-            <datalist id="platform-options">
-                @foreach($masterOptions['platforms'] as $value)
-                    <option value="{{ $value }}"></option>
-                @endforeach
-            </datalist>
-            <datalist id="end-station-options">
-                @foreach($masterOptions['endStations'] as $value)
-                    <option value="{{ $value }}"></option>
-                @endforeach
-            </datalist>
-            <datalist id="end-no-options">
-                @foreach($masterOptions['endNos'] as $value)
-                    <option value="{{ $value }}"></option>
-                @endforeach
-            </datalist>
-            <datalist id="end-depot-options">
-                @foreach($masterOptions['depots'] as $value)
-                    <option value="{{ $value }}"></option>
-                @endforeach
-            </datalist>
-
-            <div class="paper-footer">
-                <div>
-                    <label>Highlight Notice</label>
-                    <input type="text" class="highlight-notice-input" name="highlight_notice" value="{{ old('highlight_notice', $day->highlight_notice) }}">
-                    <div style="height: 12px;"></div>
-                    <label>Notes / Daily Report</label>
-                    <textarea name="footer_notes" placeholder="บันทึกหมายเหตุประจำวัน, call on, งานซ่อม, event พิเศษ หรือ handover สำหรับวันถัดไป">{{ old('footer_notes', $day->footer_notes) }}</textarea>
-                    <div style="height: 12px;"></div>
-                    <div class="footer-block-grid">
+                    <div class="paper-footer">
                         <div>
-                            <label>Notes Timeline</label>
-                            <table class="footer-mini-table">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Set</th>
-                                        <th>Location</th>
-                                        <th></th>
-                                        <th>Target</th>
-                                        <th>Flag</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach(collect(old('note_blocks', $noteBlocks))->pad(count($noteBlocks), ['time' => '', 'from' => '', 'location' => '', 'arrow' => '>>>', 'to' => '', 'flag' => ''])->all() as $index => $block)
-                                        <tr>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][time]" value="{{ $block['time'] ?? '' }}"></td>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][from]" value="{{ $block['from'] ?? '' }}"></td>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][location]" value="{{ $block['location'] ?? '' }}"></td>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][arrow]" value="{{ $block['arrow'] ?? '>>>' }}"></td>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][to]" value="{{ $block['to'] ?? '' }}"></td>
-                                            <td><input type="text" name="note_blocks[{{ $index }}][flag]" value="{{ $block['flag'] ?? '' }}"></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                            <label>Highlight Notice</label>
+                            <input type="text" class="highlight-notice-input" name="highlight_notice" value="{{ old('highlight_notice', $day->highlight_notice) }}">
+                            <div style="height: 12px;"></div>
+                            <label>Notes / Daily Report</label>
+                            <textarea name="footer_notes" placeholder="บันทึกหมายเหตุประจำวัน, call on, งานซ่อม, event พิเศษ หรือ handover สำหรับวันถัดไป">{{ old('footer_notes', $day->footer_notes) }}</textarea>
+                            <div style="height: 12px;"></div>
+                            <div class="footer-block-grid">
+                                <div>
+                                    <label>Notes Timeline</label>
+                                    <table class="footer-mini-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Time</th>
+                                                <th>Set</th>
+                                                <th>Location</th>
+                                                <th></th>
+                                                <th>Target</th>
+                                                <th>Flag</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach(collect(old('note_blocks', $noteBlocks))->pad(count($noteBlocks), ['time' => '', 'from' => '', 'location' => '', 'arrow' => '>>>', 'to' => '', 'flag' => ''])->all() as $index => $block)
+                                                <tr>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][time]" value="{{ $block['time'] ?? '' }}"></td>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][from]" value="{{ $block['from'] ?? '' }}"></td>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][location]" value="{{ $block['location'] ?? '' }}"></td>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][arrow]" value="{{ $block['arrow'] ?? '>>>' }}"></td>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][to]" value="{{ $block['to'] ?? '' }}"></td>
+                                                    <td><input type="text" name="note_blocks[{{ $index }}][flag]" value="{{ $block['flag'] ?? '' }}"></td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <label>TWP / Handover List</label>
+                                    <table class="footer-mini-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Set</th>
+                                                <th>Target</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach(collect(old('handover_blocks', $handoverBlocks))->pad(count($handoverBlocks), ['set' => '', 'target' => ''])->all() as $index => $block)
+                                                <tr>
+                                                    <td><input type="text" name="handover_blocks[{{ $index }}][set]" value="{{ $block['set'] ?? '' }}"></td>
+                                                    <td><input type="text" name="handover_blocks[{{ $index }}][target]" value="{{ $block['target'] ?? '' }}"></td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="paper-signoff-grid">
+                                <div class="paper-signoff-box">
+                                    <strong>Dispatcher</strong>
+                                    <span>ลงชื่อ / เวลา</span>
+                                </div>
+                                <div class="paper-signoff-box">
+                                    <strong>OCC Supervisor</strong>
+                                    <span>ตรวจสอบ / รับทราบ</span>
+                                </div>
+                                <div class="paper-signoff-box">
+                                    <strong>Handover</strong>
+                                    <span>กะถัดไป / ผู้รับช่วง</span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label>TWP / Handover List</label>
-                            <table class="footer-mini-table">
-                                <thead>
-                                    <tr>
-                                        <th>Set</th>
-                                        <th>Target</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach(collect(old('handover_blocks', $handoverBlocks))->pad(count($handoverBlocks), ['set' => '', 'target' => ''])->all() as $index => $block)
-                                        <tr>
-                                            <td><input type="text" name="handover_blocks[{{ $index }}][set]" value="{{ $block['set'] ?? '' }}"></td>
-                                            <td><input type="text" name="handover_blocks[{{ $index }}][target]" value="{{ $block['target'] ?? '' }}"></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="paper-signoff-grid">
-                        <div class="paper-signoff-box">
-                            <strong>Dispatcher</strong>
-                            <span>ลงชื่อ / เวลา</span>
-                        </div>
-                        <div class="paper-signoff-box">
-                            <strong>OCC Supervisor</strong>
-                            <span>ตรวจสอบ / รับทราบ</span>
-                        </div>
-                        <div class="paper-signoff-box">
-                            <strong>Handover</strong>
-                            <span>กะถัดไป / ผู้รับช่วง</span>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="status-legend">
-                    <label>Legend</label>
-                    <div class="legend-item">
-                        <span class="swatch available"></span>
-                        พร้อมให้บริการ
-                    </div>
-                    <div class="legend-item">
-                        <span class="swatch warning"></span>
-                        ใกล้วาระซ่อม
-                    </div>
-                    <div class="legend-item">
-                        <span class="swatch out"></span>
-                        งดให้บริการ
-                    </div>
-                    <div class="legend-item" style="display: block; line-height: 1.5; font-weight: 500;">
-                        ใช้งานแบบสมุด: เลือกวันที่ด้านบน แล้วบันทึกข้อมูลของวันนั้น เมื่อเปิดวันถัดไป ระบบจะสร้างหน้ากระดาษใหม่ให้ต่อเนื่องทันที
-                    </div>
-                    <div class="callout-box">
-                        <strong>TWP / Handover</strong>
-                        ใช้กล่องนี้สำหรับจดขบวนที่ส่งต่อเข้าวันถัดไป, งานค้าง, call on และรายการพิเศษที่ต้องเฝ้าระวัง เพื่อให้รูปแบบการใช้งานใกล้กับสมุดจริงมากขึ้น
+                        <div class="status-legend">
+                            <label>Legend</label>
+                            <div class="legend-item">
+                                <span class="swatch available"></span>
+                                พร้อมให้บริการ
+                            </div>
+                            <div class="legend-item">
+                                <span class="swatch warning"></span>
+                                ใกล้วาระซ่อม
+                            </div>
+                            <div class="legend-item">
+                                <span class="swatch out"></span>
+                                งดให้บริการ
+                            </div>
+                            <div class="legend-item" style="display: block; line-height: 1.5; font-weight: 500;">
+                                ใช้งานแบบสมุด: เลือกวันที่ด้านบน แล้วบันทึกข้อมูลของวันนั้น เมื่อเปิดวันถัดไป ระบบจะสร้างหน้ากระดาษใหม่ให้ต่อเนื่องทันที
+                            </div>
+                            <div class="callout-box">
+                                <strong>TWP / Handover</strong>
+                                ใช้กล่องนี้สำหรับจดขบวนที่ส่งต่อเข้าวันถัดไป, งานค้าง, call on และรายการพิเศษที่ต้องเฝ้าระวัง เพื่อให้รูปแบบการใช้งานใกล้กับสมุดจริงมากขึ้น
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1129,11 +1172,50 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const fitStage = document.getElementById('paper-fit-stage');
+    const fitCanvas = document.getElementById('paper-fit-canvas');
+    const paperCard = document.getElementById('paper-card');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
         out_of_service: 'train-status-out_of_service',
     };
+
+    const applyPaperFit = () => {
+        if (! fitStage || ! fitCanvas || ! paperCard || window.matchMedia('print').matches) {
+            return;
+        }
+
+        const allowFit = window.innerWidth > 1280;
+
+        if (! allowFit) {
+            fitStage.classList.add('is-disabled');
+            fitStage.style.height = 'auto';
+            fitStage.style.removeProperty('--paper-scale');
+            return;
+        }
+
+        fitStage.classList.remove('is-disabled');
+
+        const availableWidth = fitStage.clientWidth;
+        const naturalWidth = paperCard.scrollWidth;
+        const naturalHeight = paperCard.scrollHeight;
+        const scale = Math.min(1, availableWidth / naturalWidth);
+
+        fitStage.style.setProperty('--paper-scale', scale.toFixed(4));
+        fitStage.style.height = `${naturalHeight * scale}px`;
+    };
+
+    const fitObserver = typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => applyPaperFit())
+        : null;
+
+    if (fitObserver && paperCard) {
+        fitObserver.observe(paperCard);
+    }
+
+    window.addEventListener('resize', applyPaperFit);
+    applyPaperFit();
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
         const trainSetSelect = row.querySelector('.train-set-select');
@@ -1252,8 +1334,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.syncTrainDefaults(false);
                 }
             });
+
+            applyPaperFit();
         });
     }
+
+    document.querySelectorAll('.cell-textarea').forEach((textarea) => {
+        textarea.addEventListener('input', applyPaperFit);
+    });
 });
 </script>
 @endsection
