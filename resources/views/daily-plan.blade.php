@@ -402,7 +402,8 @@
     }
 
     .paper-table-wrap {
-        overflow: visible;
+        overflow-x: auto;
+        overflow-y: hidden;
         background: repeating-linear-gradient(
             0deg,
             rgba(148, 163, 184, 0.05),
@@ -410,6 +411,11 @@
             transparent 1px,
             transparent 44px
         );
+        scrollbar-width: none;
+    }
+
+    .paper-table-wrap::-webkit-scrollbar {
+        display: none;
     }
 
     .service-plan-table {
@@ -1037,7 +1043,7 @@
                         </div>
                     </div>
 
-                    <div class="paper-table-wrap">
+                    <div class="paper-table-wrap" id="paper-table-wrap">
                         <table class="service-plan-table">
                             <colgroup>
                                 <col style="width: 140px;">
@@ -1302,6 +1308,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const fitStage = document.getElementById('paper-fit-stage');
     const fitCanvas = document.getElementById('paper-fit-canvas');
     const paperCard = document.getElementById('paper-card');
+    const paperTableWrap = document.getElementById('paper-table-wrap');
     const scrollbarProxy = document.getElementById('scrollbar-proxy');
     const scrollbarProxyInner = document.getElementById('scrollbar-proxy-inner');
     const statusClassMap = {
@@ -1311,25 +1318,25 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const syncProxyWidth = () => {
-        if (! fitStage || ! fitCanvas || ! scrollbarProxyInner) {
+        if (! paperTableWrap || ! scrollbarProxyInner) {
             return;
         }
 
-        const contentWidth = Math.max(fitCanvas.scrollWidth, paperCard ? paperCard.scrollWidth : 0, fitStage.clientWidth);
+        const contentWidth = Math.max(paperTableWrap.scrollWidth, paperTableWrap.clientWidth);
         scrollbarProxyInner.style.width = `${contentWidth}px`;
     };
 
     let syncingFromStage = false;
     let syncingFromProxy = false;
 
-    if (fitStage && scrollbarProxy) {
-        fitStage.addEventListener('scroll', () => {
+    if (paperTableWrap && scrollbarProxy) {
+        paperTableWrap.addEventListener('scroll', () => {
             if (syncingFromProxy) {
                 return;
             }
 
             syncingFromStage = true;
-            scrollbarProxy.scrollLeft = fitStage.scrollLeft;
+            scrollbarProxy.scrollLeft = paperTableWrap.scrollLeft;
             syncingFromStage = false;
         });
 
@@ -1339,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             syncingFromProxy = true;
-            fitStage.scrollLeft = scrollbarProxy.scrollLeft;
+            paperTableWrap.scrollLeft = scrollbarProxy.scrollLeft;
             syncingFromProxy = false;
         });
     }
@@ -1352,8 +1359,8 @@ document.addEventListener('DOMContentLoaded', function () {
         proxyResizeObserver.observe(fitCanvas);
     }
 
-    if (proxyResizeObserver && fitStage) {
-        proxyResizeObserver.observe(fitStage);
+    if (proxyResizeObserver && paperTableWrap) {
+        proxyResizeObserver.observe(paperTableWrap);
     }
 
     window.addEventListener('resize', syncProxyWidth);
