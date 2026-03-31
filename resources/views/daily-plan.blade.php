@@ -4,7 +4,7 @@
 @section('content')
 <style>
     .page-content {
-        padding: 14px 16px 18px;
+        padding: 14px 16px 34px;
     }
 
     .service-book-shell {
@@ -16,6 +16,30 @@
     .paper-fit-stage {
         width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 14px;
+        scrollbar-width: auto;
+        scrollbar-color: #f59e0b rgba(15, 23, 42, 0.45);
+    }
+
+    .paper-fit-stage::-webkit-scrollbar {
+        height: 16px;
+    }
+
+    .paper-fit-stage::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.45);
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .paper-fit-stage::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        border-radius: 999px;
+        border: 2px solid rgba(15, 23, 42, 0.45);
+    }
+
+    .paper-fit-stage::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(90deg, #fbbf24, #fcd34d);
     }
 
     .paper-fit-canvas {
@@ -658,6 +682,23 @@
         border-radius: 12px;
     }
 
+    .scrollbar-hint {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        background: rgba(245, 158, 11, 0.08);
+        color: #f8fafc;
+        font-size: 12px;
+    }
+
+    .scrollbar-hint strong {
+        color: #fbbf24;
+    }
+
     .paper-signoff-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -875,6 +916,11 @@
     <div class="paper-helper-bar">
         <div class="page-helper-text">เลือกวันเพื่อเปิดหน้ากระดาษของวันนั้น, ใช้ Master Data เพื่อกำหนดค่าถาวรของ T01-T25 แล้วกด “เติมค่ามาตรฐาน” เมื่อต้องการกรอกฟอร์มเร็วขึ้น</div>
         <div class="page-helper-text">ค่าที่กรอกไว้แล้วจะไม่ถูกทับเมื่อใช้การเติมค่ามาตรฐาน และสามารถคัดลอกทั้งหน้าจากวันก่อนหน้าได้</div>
+    </div>
+
+    <div class="scrollbar-hint">
+        <span><strong>เลื่อนซ้าย-ขวา:</strong> ใช้แถบสีส้มด้านล่างของตารางเพื่อดูคอลัมน์ทั้งหมด</span>
+        <span>Horizontal Scroll</span>
     </div>
 
     <form id="service-plan-form" method="POST" action="{{ route('daily-plan.save') }}">
