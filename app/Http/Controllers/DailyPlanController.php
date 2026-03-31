@@ -70,10 +70,13 @@ class DailyPlanController extends Controller
                     : null;
 
                 $trainSet = $trainSetId ? TrainSet::find($trainSetId) : null;
+                $computedStatus = $trainSet?->health_status ?? 'available';
+                $selectedStatus = $row['service_status'] ?? $computedStatus;
 
                 $entry->update([
                     'train_set_id' => $trainSetId,
-                    'service_status' => $row['service_status'] ?? 'available',
+                    'service_status' => $selectedStatus,
+                    'status_mode' => $selectedStatus === $computedStatus ? 'auto' : 'manual',
                     'row_theme' => $this->stringOrNull($row['row_theme'] ?? null) ?? $trainSet?->default_row_theme,
                     'berth_no' => $this->stringOrNull($row['berth_no'] ?? null) ?? $trainSet?->default_berth_no,
                     'consist_type' => $this->normalizeConsistType($row['consist_type'] ?? null, $trainSet?->default_consist_type),
@@ -192,6 +195,7 @@ class DailyPlanController extends Controller
                 $currentEntry->update([
                     'train_set_id' => $previousEntry->train_set_id,
                     'service_status' => $previousEntry->service_status,
+                    'status_mode' => $previousEntry->status_mode,
                     'row_theme' => $previousEntry->row_theme,
                     'berth_no' => $previousEntry->berth_no,
                     'consist_type' => $previousEntry->consist_type,
@@ -225,7 +229,7 @@ class DailyPlanController extends Controller
         $trainSets = $this->ensureTrainSets();
 
         $day->load(['entries.trainSet']);
-        $statusSummary = $day->entries->countBy('service_status')->all();
+        $statusSummary = $day->entries->countBy(fn (ServicePlanEntry $entry) => $entry->effective_status)->all();
         $hasPreviousDay = ServicePlanDay::query()
             ->whereDate('service_date', $date->copy()->subDay()->toDateString())
             ->exists();
@@ -311,7 +315,8 @@ class DailyPlanController extends Controller
                 ],
                 [
                     'train_set_id' => $trainSet->id,
-                    'service_status' => 'available',
+                    'service_status' => $trainSet->health_status,
+                    'status_mode' => 'auto',
                     'row_theme' => $trainSet->default_row_theme,
                     'berth_no' => $trainSet->default_berth_no,
                     'consist_type' => $trainSet->default_consist_type,

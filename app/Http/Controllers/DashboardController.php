@@ -2,97 +2,116 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vehicle;
-use App\Models\DailyPlan;
-use App\Models\MaintenanceLog;
+use App\Models\ServicePlanDay;
+use App\Models\TrainSet;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $vehicles = Vehicle::all();
+        $trainSets = TrainSet::query()->orderBy('display_order')->get();
         $today = Carbon::today();
 
-        // Summary counts
-        $totalVehicles = $vehicles->count();
-        $activeCount = $vehicles->where('status', 'active')->count();
-        $minorCount = $vehicles->where('status', 'minor_repair')->count();
-        $majorCount = $vehicles->where('status', 'major_repair')->count();
-        $retiredCount = $vehicles->where('status', 'retired')->count();
+        $totalTrainSets = $trainSets->count();
+        $availableCount = $trainSets->where('health_status', 'available')->count();
+        $warningCount = $trainSets->where('health_status', 'warning')->count();
+        $outOfServiceCount = $trainSets->where('health_status', 'out_of_service')->count();
 
-        // Today's plans
-        $todayPlans = DailyPlan::with('vehicle')->where('plan_date', $today)->get();
-        $todayTrips = $todayPlans->count();
-        $inProgress = $todayPlans->where('status', 'in_progress')->count();
-        $completed = $todayPlans->where('status', 'completed')->count();
+        $todayDay = ServicePlanDay::query()
+            ->whereDate('service_date', $today->toDateString())
+            ->with(['entries.trainSet'])
+            ->first();
 
-        // Alerts - vehicles near maintenance
+        $todayEntries = $todayDay?->entries ?? collect();
+        $todayPlanned = $todayEntries->where('effective_status', 'available')->count();
+        $todayWarning = $todayEntries->where('effective_status', 'warning')->count();
+        $todayOut = $todayEntries->where('effective_status', 'out_of_service')->count();
+
         $alerts = [];
-        foreach ($vehicles as $vehicle) {
-            if ($vehicle->status === 'retired') continue;
+        foreach ($trainSets as $trainSet) {
+            if ($trainSet->maintenance_status === 'retired') {
+                continue;
+            }
 
-            $mileageRemaining = $vehicle->next_service_mileage - $vehicle->current_mileage;
-            if ($mileageRemaining < 1000 && $mileageRemaining > 0) {
+            if ($trainSet->mileage_remaining < 0) {
+                $alerts[] = [
+                    'type' => 'mileage',
+                    'level' => 'danger',
+                    'trainSet' => $trainSet,
+                    'message' => 'เกินกำหนดเช็คระยะแล้ว ' . abs($trainSet->mileage_remaining) . ' km',
+                ];
+            } elseif ($trainSet->mileage_remaining <= 1000) {
                 $alerts[] = [
                     'type' => 'mileage',
                     'level' => 'warning',
-                    'vehicle' => $vehicle,
-                    'message' => "เหลืออีก {$mileageRemaining} km จะถึงกำหนดเช็คระยะ",
+                    'trainSet' => $trainSet,
+                    'message' => 'เหลืออีก ' . $trainSet->mileage_remaining . ' km จะถึงกำหนดเช็คระยะ',
                 ];
             }
 
-            if ($vehicle->next_maintenance_date) {
-                $daysUntil = Carbon::now()->diffInDays($vehicle->next_maintenance_date, false);
-                if ($daysUntil <= 7 && $daysUntil >= 0) {
-                    $alerts[] = [
-                        'type' => 'schedule',
-                        'level' => 'warning',
-                        'vehicle' => $vehicle,
-                        'message' => "อีก {$daysUntil} วัน ถึงกำหนดซ่อมบำรุง",
-                    ];
-                } elseif ($daysUntil < 0) {
+            if ($trainSet->days_until_maintenance !== null) {
+                if ($trainSet->days_until_maintenance < 0) {
                     $alerts[] = [
                         'type' => 'schedule',
                         'level' => 'danger',
-                        'vehicle' => $vehicle,
-                        'message' => "เลยกำหนดซ่อมบำรุงมาแล้ว " . abs($daysUntil) . " วัน",
+                        'trainSet' => $trainSet,
+                        'message' => 'เลยกำหนดซ่อมบำรุงมาแล้ว ' . abs($trainSet->days_until_maintenance) . ' วัน',
+                    ];
+                } elseif ($trainSet->days_until_maintenance <= 7) {
+                    $alerts[] = [
+                        'type' => 'schedule',
+                        'level' => 'warning',
+                        'trainSet' => $trainSet,
+                        'message' => 'อีก ' . $trainSet->days_until_maintenance . ' วัน ถึงกำหนดซ่อมบำรุง',
                     ];
                 }
             }
 
-            if ($vehicle->status === 'minor_repair') {
+            if ($trainSet->maintenance_status === 'minor_repair') {
                 $alerts[] = [
                     'type' => 'repair',
                     'level' => 'warning',
-                    'vehicle' => $vehicle,
-                    'message' => "ซ่อมเล็กน้อย: {$vehicle->repair_note}",
+                    'trainSet' => $trainSet,
+                    'message' => 'Minor: ' . ($trainSet->repair_note ?: 'มีรายการต้องตรวจสอบก่อนใช้งาน'),
                 ];
             }
-            if ($vehicle->status === 'major_repair') {
+
+            if ($trainSet->maintenance_status === 'major_repair') {
                 $alerts[] = [
                     'type' => 'repair',
                     'level' => 'danger',
-                    'vehicle' => $vehicle,
-                    'message' => "ซ่อมหนัก: {$vehicle->repair_note}",
+                    'trainSet' => $trainSet,
+                    'message' => 'Major: ' . ($trainSet->repair_note ?: 'งดให้บริการจนกว่าจะซ่อมเสร็จ'),
                 ];
             }
         }
 
-        // Chart data - last 7 days trips
+        $recentDays = ServicePlanDay::query()
+            ->whereBetween('service_date', [$today->copy()->subDays(6)->toDateString(), $today->toDateString()])
+            ->with('entries.trainSet')
+            ->get()
+            ->keyBy(fn (ServicePlanDay $day) => Carbon::parse($day->service_date)->format('Y-m-d'));
+
         $chartLabels = [];
-        $chartData = [];
+        $chartAvailable = [];
+        $chartWarning = [];
+        $chartOut = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
+            $day = $recentDays->get($date->format('Y-m-d'));
+            $entries = $day?->entries ?? collect();
+
             $chartLabels[] = $date->format('d/m');
-            $chartData[] = DailyPlan::where('plan_date', $date)->count();
+            $chartAvailable[] = $entries->where('effective_status', 'available')->count();
+            $chartWarning[] = $entries->where('effective_status', 'warning')->count();
+            $chartOut[] = $entries->where('effective_status', 'out_of_service')->count();
         }
 
         return view('dashboard', compact(
-            'totalVehicles', 'activeCount', 'minorCount', 'majorCount', 'retiredCount',
-            'todayTrips', 'inProgress', 'completed',
-            'alerts', 'chartLabels', 'chartData', 'todayPlans'
+            'totalTrainSets', 'availableCount', 'warningCount', 'outOfServiceCount',
+            'todayPlanned', 'todayWarning', 'todayOut',
+            'alerts', 'chartLabels', 'chartAvailable', 'chartWarning', 'chartOut', 'todayEntries', 'trainSets'
         ));
     }
 }

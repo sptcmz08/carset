@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vehicle;
-use App\Models\DailyPlan;
-use App\Models\MaintenanceLog;
+use App\Models\ServicePlanDay;
+use App\Models\TrainSet;
+use App\Models\TrainSetMaintenanceLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -16,45 +16,51 @@ class ReportController extends Controller
         $days = (int) $period;
         $startDate = Carbon::today()->subDays($days);
         $endDate = Carbon::today();
+        $periodDays = $startDate->diffInDays($endDate) + 1;
 
-        // Trip stats
-        $plans = DailyPlan::with('vehicle')
-            ->whereBetween('plan_date', [$startDate, $endDate])
+        $planDays = ServicePlanDay::query()
+            ->whereBetween('service_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->with(['entries.trainSet'])
             ->get();
 
-        $totalTrips = $plans->count();
-        $completedTrips = $plans->where('status', 'completed')->count();
-        $cancelledTrips = $plans->where('status', 'cancelled')->count();
-        $completionRate = $totalTrips > 0 ? round($completedTrips / $totalTrips * 100, 1) : 0;
+        $entries = $planDays->flatMap->entries;
 
-        // Vehicle utilization
-        $vehicles = Vehicle::where('status', '!=', 'retired')->get();
-        $vehicleUtilization = [];
-        foreach ($vehicles as $vehicle) {
-            $tripCount = $plans->where('vehicle_id', $vehicle->id)->count();
-            $utilization = $days > 0 ? round($tripCount / $days * 100, 1) : 0;
-            $vehicleUtilization[] = [
-                'vehicle' => $vehicle,
-                'trips' => $tripCount,
+        $totalAssignments = $entries->count();
+        $availableAssignments = $entries->where('effective_status', 'available')->count();
+        $warningAssignments = $entries->where('effective_status', 'warning')->count();
+        $outOfServiceAssignments = $entries->where('effective_status', 'out_of_service')->count();
+        $availabilityRate = $totalAssignments > 0 ? round($availableAssignments / $totalAssignments * 100, 1) : 0;
+
+        $trainSets = TrainSet::query()->orderBy('display_order')->get();
+        $trainSetUtilization = [];
+        foreach ($trainSets as $trainSet) {
+            $plannedDays = $entries
+                ->where('train_set_id', $trainSet->id)
+                ->filter(fn ($entry) => $entry->effective_status !== 'out_of_service' && (! empty($entry->departure_plan_time) || ! empty($entry->outbound_run_no)))
+                ->count();
+
+            $utilization = $periodDays > 0 ? round($plannedDays / $periodDays * 100, 1) : 0;
+
+            $trainSetUtilization[] = [
+                'train_set' => $trainSet,
+                'planned_days' => $plannedDays,
                 'utilization' => min($utilization, 100),
             ];
         }
-        usort($vehicleUtilization, fn($a, $b) => $b['trips'] <=> $a['trips']);
+        usort($trainSetUtilization, fn ($a, $b) => $b['planned_days'] <=> $a['planned_days']);
 
-        // Maintenance costs
-        $maintenanceLogs = MaintenanceLog::with('vehicle')
+        $maintenanceLogs = TrainSetMaintenanceLog::with('trainSet')
             ->whereBetween('service_date', [$startDate, $endDate])
             ->get();
         $totalMaintenanceCost = $maintenanceLogs->sum('cost');
         $scheduledCost = $maintenanceLogs->where('maintenance_type', 'scheduled')->sum('cost');
         $repairCost = $maintenanceLogs->whereIn('maintenance_type', ['minor_repair', 'major_repair'])->sum('cost');
 
-        // Frequent problem vehicles
-        $problemVehicles = $maintenanceLogs
+        $problemTrainSets = $maintenanceLogs
             ->whereIn('maintenance_type', ['minor_repair', 'major_repair'])
-            ->groupBy('vehicle_id')
-            ->map(fn($logs) => [
-                'vehicle' => $logs->first()->vehicle,
+            ->groupBy('train_set_id')
+            ->map(fn ($logs) => [
+                'train_set' => $logs->first()->trainSet,
                 'count' => $logs->count(),
                 'total_cost' => $logs->sum('cost'),
             ])
@@ -62,23 +68,27 @@ class ReportController extends Controller
             ->take(5)
             ->values();
 
-        // Chart data - daily trips
+        $planDaysByDate = $planDays->keyBy(fn (ServicePlanDay $day) => Carbon::parse($day->service_date)->format('Y-m-d'));
         $chartLabels = [];
-        $chartTrips = [];
-        $chartCompleted = [];
+        $chartAvailable = [];
+        $chartWarning = [];
+        $chartOut = [];
         for ($i = $days; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $dayPlans = $plans->filter(fn($p) => $p->plan_date->format('Y-m-d') === $date->format('Y-m-d'));
+            $day = $planDaysByDate->get($date->format('Y-m-d'));
+            $dayEntries = $day?->entries ?? collect();
+
             $chartLabels[] = $date->format('d/m');
-            $chartTrips[] = $dayPlans->count();
-            $chartCompleted[] = $dayPlans->where('status', 'completed')->count();
+            $chartAvailable[] = $dayEntries->where('effective_status', 'available')->count();
+            $chartWarning[] = $dayEntries->where('effective_status', 'warning')->count();
+            $chartOut[] = $dayEntries->where('effective_status', 'out_of_service')->count();
         }
 
         return view('reports', compact(
-            'period', 'days', 'startDate', 'endDate',
-            'totalTrips', 'completedTrips', 'cancelledTrips', 'completionRate',
-            'vehicleUtilization', 'totalMaintenanceCost', 'scheduledCost', 'repairCost',
-            'problemVehicles', 'chartLabels', 'chartTrips', 'chartCompleted'
+            'period', 'days', 'startDate', 'endDate', 'periodDays',
+            'totalAssignments', 'availableAssignments', 'warningAssignments', 'outOfServiceAssignments', 'availabilityRate',
+            'trainSetUtilization', 'totalMaintenanceCost', 'scheduledCost', 'repairCost',
+            'problemTrainSets', 'chartLabels', 'chartAvailable', 'chartWarning', 'chartOut'
         ));
     }
 }

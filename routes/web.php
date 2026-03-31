@@ -16,8 +16,9 @@ Route::post('/daily-plan/master', [DailyPlanController::class, 'saveMaster'])->n
 Route::get('/daily-plan/pdf', [DailyPlanController::class, 'exportPdf'])->name('daily-plan.pdf');
 
 Route::get('/fleet', [FleetController::class, 'index'])->name('fleet');
-Route::get('/fleet/{vehicle}', [FleetController::class, 'show'])->name('fleet.show');
-Route::post('/fleet/{vehicle}/mileage', [FleetController::class, 'updateMileage'])->name('fleet.mileage');
-Route::post('/fleet/{vehicle}/status', [FleetController::class, 'updateStatus'])->name('fleet.status');
+Route::get('/fleet/{trainSet}', [FleetController::class, 'show'])->name('fleet.show');
+Route::post('/fleet/{trainSet}/mileage', [FleetController::class, 'updateMileage'])->name('fleet.mileage');
+Route::post('/fleet/{trainSet}/status', [FleetController::class, 'updateStatus'])->name('fleet.status');
+Route::post('/fleet/{trainSet}/schedule', [FleetController::class, 'updateSchedule'])->name('fleet.schedule');
 
 Route::get('/reports', [ReportController::class, 'index'])->name('reports');

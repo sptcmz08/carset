@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vehicle;
-use App\Models\MaintenanceLog;
-use App\Models\MileageLog;
+use App\Models\TrainSet;
+use App\Models\TrainSetMaintenanceLog;
+use App\Models\TrainSetMileageLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -13,99 +13,132 @@ class FleetController extends Controller
     public function index(Request $request)
     {
         $filter = $request->get('filter', 'all');
-        $query = Vehicle::withCount(['dailyPlans', 'maintenanceLogs']);
+        $allTrainSets = TrainSet::withCount(['servicePlanEntries', 'maintenanceLogs'])
+            ->orderBy('display_order')
+            ->get();
 
-        if ($filter !== 'all') {
-            if ($filter === 'warning') {
-                $query->where(function ($q) {
-                    $q->whereRaw('(next_service_mileage - current_mileage) < 1000')
-                      ->orWhere('next_maintenance_date', '<=', Carbon::now()->addDays(7));
-                })->where('status', 'active');
-            } else {
-                $query->where('status', $filter);
-            }
-        }
-
-        $vehicles = $query->get();
-        $allVehicles = Vehicle::all();
+        $trainSets = $allTrainSets->filter(function (TrainSet $trainSet) use ($filter) {
+            return match ($filter) {
+                'active' => $trainSet->health_status === 'available',
+                'warning' => $trainSet->health_status === 'warning',
+                'minor_repair', 'major_repair', 'retired' => $trainSet->maintenance_status === $filter,
+                default => true,
+            };
+        })->values();
 
         $stats = [
-            'total' => $allVehicles->count(),
-            'active' => $allVehicles->where('status', 'active')->count(),
-            'minor' => $allVehicles->where('status', 'minor_repair')->count(),
-            'major' => $allVehicles->where('status', 'major_repair')->count(),
-            'retired' => $allVehicles->where('status', 'retired')->count(),
+            'total' => $allTrainSets->count(),
+            'available' => $allTrainSets->where('health_status', 'available')->count(),
+            'warning' => $allTrainSets->where('health_status', 'warning')->count(),
+            'out_of_service' => $allTrainSets->where('health_status', 'out_of_service')->count(),
+            'minor' => $allTrainSets->where('maintenance_status', 'minor_repair')->count(),
+            'major' => $allTrainSets->where('maintenance_status', 'major_repair')->count(),
+            'retired' => $allTrainSets->where('maintenance_status', 'retired')->count(),
         ];
 
-        return view('fleet', compact('vehicles', 'filter', 'stats'));
+        return view('fleet', compact('trainSets', 'filter', 'stats'));
     }
 
-    public function show(Vehicle $vehicle)
+    public function show(TrainSet $trainSet)
     {
-        $vehicle->load(['maintenanceLogs' => function ($q) {
-            $q->orderBy('service_date', 'desc');
-        }, 'mileageLogs' => function ($q) {
-            $q->orderBy('log_date', 'desc')->limit(30);
-        }]);
+        $trainSet->load([
+            'maintenanceLogs' => fn ($query) => $query->orderBy('service_date', 'desc'),
+            'mileageLogs' => fn ($query) => $query->orderBy('log_date', 'desc')->limit(30),
+            'servicePlanEntries.day',
+        ]);
 
         return response()->json([
-            'vehicle' => $vehicle,
-            'health_status' => $vehicle->health_status,
-            'health_label' => $vehicle->health_label,
-            'health_icon' => $vehicle->health_icon,
-            'vehicle_type_thai' => $vehicle->vehicle_type_thai,
-            'maintenance_logs' => $vehicle->maintenanceLogs,
-            'mileage_logs' => $vehicle->mileageLogs,
+            'train_set' => $trainSet,
+            'health_status' => $trainSet->health_status,
+            'health_label' => $trainSet->health_label,
+            'health_icon' => $trainSet->health_icon,
+            'health_badge_class' => $trainSet->health_badge_class,
+            'maintenance_logs' => $trainSet->maintenanceLogs,
+            'mileage_logs' => $trainSet->mileageLogs,
         ]);
     }
 
-    public function updateMileage(Request $request, Vehicle $vehicle)
+    public function updateMileage(Request $request, TrainSet $trainSet)
     {
         $validated = $request->validate([
-            'mileage' => 'required|integer|min:' . $vehicle->current_mileage,
+            'mileage' => 'required|integer|min:' . $trainSet->current_mileage,
         ]);
 
-        $vehicle->update(['current_mileage' => $validated['mileage']]);
+        $trainSet->update(['current_mileage' => $validated['mileage']]);
 
-        MileageLog::create([
-            'vehicle_id' => $vehicle->id,
+        TrainSetMileageLog::create([
+            'train_set_id' => $trainSet->id,
             'log_date' => Carbon::today(),
             'mileage' => $validated['mileage'],
         ]);
 
-        return response()->json([
-            'success' => true,
-            'health_status' => $vehicle->fresh()->health_status,
-            'health_label' => $vehicle->fresh()->health_label,
-            'health_icon' => $vehicle->fresh()->health_icon,
-        ]);
+        return response()->json($this->buildStatusResponse($trainSet->fresh()));
     }
 
-    public function updateStatus(Request $request, Vehicle $vehicle)
+    public function updateStatus(Request $request, TrainSet $trainSet)
     {
         $validated = $request->validate([
             'status' => 'required|in:active,minor_repair,major_repair,retired',
             'repair_note' => 'nullable|string',
         ]);
 
-        $vehicle->update($validated);
+        $trainSet->update([
+            'maintenance_status' => $validated['status'],
+            'repair_note' => $validated['repair_note'] ?? null,
+        ]);
 
-        if (in_array($validated['status'], ['minor_repair', 'major_repair'])) {
-            MaintenanceLog::create([
-                'vehicle_id' => $vehicle->id,
-                'maintenance_type' => $validated['status'] === 'minor_repair' ? 'minor_repair' : 'major_repair',
+        if (in_array($validated['status'], ['minor_repair', 'major_repair'], true)) {
+            TrainSetMaintenanceLog::create([
+                'train_set_id' => $trainSet->id,
+                'maintenance_type' => $validated['status'],
                 'description' => $validated['repair_note'] ?? 'บันทึกอาการเสีย',
-                'mileage_at_service' => $vehicle->current_mileage,
+                'mileage_at_service' => $trainSet->current_mileage,
                 'service_date' => Carbon::today(),
                 'status' => 'pending',
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'health_status' => $vehicle->fresh()->health_status,
-            'health_label' => $vehicle->fresh()->health_label,
-            'health_icon' => $vehicle->fresh()->health_icon,
+        return response()->json($this->buildStatusResponse($trainSet->fresh()));
+    }
+
+    public function updateSchedule(Request $request, TrainSet $trainSet)
+    {
+        $validated = $request->validate([
+            'next_service_mileage' => 'required|integer|min:' . $trainSet->current_mileage,
+            'last_maintenance_date' => 'nullable|date',
+            'next_maintenance_date' => 'nullable|date',
         ]);
+
+        $trainSet->update($validated);
+
+        if (! empty($validated['last_maintenance_date'])) {
+            TrainSetMaintenanceLog::create([
+                'train_set_id' => $trainSet->id,
+                'maintenance_type' => 'scheduled',
+                'description' => 'อัปเดตกำหนดซ่อมบำรุงตามแผน',
+                'cost' => 0,
+                'mileage_at_service' => $trainSet->current_mileage,
+                'service_date' => Carbon::parse($validated['last_maintenance_date']),
+                'completed_date' => Carbon::parse($validated['last_maintenance_date']),
+                'status' => 'completed',
+            ]);
+        }
+
+        return response()->json($this->buildStatusResponse($trainSet->fresh()));
+    }
+
+    private function buildStatusResponse(TrainSet $trainSet): array
+    {
+        return [
+            'success' => true,
+            'health_status' => $trainSet->health_status,
+            'health_label' => $trainSet->health_label,
+            'health_icon' => $trainSet->health_icon,
+            'health_badge_class' => $trainSet->health_badge_class,
+            'maintenance_status' => $trainSet->maintenance_status,
+            'maintenance_status_label' => $trainSet->maintenance_status_label,
+            'mileage_remaining' => $trainSet->mileage_remaining,
+            'days_until_maintenance' => $trainSet->days_until_maintenance,
+        ];
     }
 }

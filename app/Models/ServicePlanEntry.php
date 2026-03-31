@@ -12,6 +12,7 @@ class ServicePlanEntry extends Model
         'train_set_id',
         'display_order',
         'service_status',
+        'status_mode',
         'row_theme',
         'berth_no',
         'consist_type',
@@ -42,9 +43,24 @@ class ServicePlanEntry extends Model
         return $this->belongsTo(TrainSet::class);
     }
 
+    public function getComputedStatusAttribute(): string
+    {
+        return $this->trainSet?->health_status ?? $this->service_status ?? 'available';
+    }
+
+    public function getEffectiveStatusAttribute(): string
+    {
+        return $this->status_mode === 'manual' ? $this->service_status : $this->computed_status;
+    }
+
+    public function getStatusOriginLabelAttribute(): string
+    {
+        return $this->status_mode === 'manual' ? 'Manual override' : 'Auto from health';
+    }
+
     public function getStatusColorAttribute(): string
     {
-        return match ($this->service_status) {
+        return match ($this->effective_status) {
             'available' => 'green',
             'warning' => 'yellow',
             'out_of_service' => 'red',
@@ -54,7 +70,7 @@ class ServicePlanEntry extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->service_status) {
+        return match ($this->effective_status) {
             'available' => 'พร้อมให้บริการ',
             'warning' => 'ใกล้วาระซ่อม',
             'out_of_service' => 'งดให้บริการ',

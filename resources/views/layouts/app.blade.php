@@ -437,14 +437,10 @@
                 <i class="fas fa-calendar-day"></i> แผนงานรายวัน
             </a>
             <a href="{{ route('fleet') }}" class="nav-link {{ request()->routeIs('fleet') ? 'active' : '' }}">
-                <i class="fas fa-truck-monster"></i> ฐานข้อมูลรถ
+                <i class="fas fa-train-subway"></i> ฐานข้อมูลขบวน
                 @php
-                    $alertCount = \App\Models\Vehicle::where('status', '!=', 'retired')
-                        ->where(function($q) {
-                            $q->whereIn('status', ['minor_repair', 'major_repair'])
-                              ->orWhereRaw('(next_service_mileage - current_mileage) < 1000')
-                              ->orWhere('next_maintenance_date', '<=', now()->addDays(7));
-                        })->count();
+                    $allTrainSets = \App\Models\TrainSet::all();
+                    $alertCount = $allTrainSets->filter(fn ($trainSet) => in_array($trainSet->health_status, ['warning', 'out_of_service'], true))->count();
                 @endphp
                 @if($alertCount > 0)
                     <span class="badge">{{ $alertCount }}</span>
@@ -456,12 +452,12 @@
 
             <div class="nav-label" style="margin-top: 24px;">ข้อมูล</div>
             <div style="padding: 12px 16px;">
-                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">สถานะรถทั้งหมด</div>
-                @php $allV = \App\Models\Vehicle::all(); @endphp
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">สถานะขบวนทั้งหมด</div>
+                @php $allSets = $allTrainSets ?? \App\Models\TrainSet::all(); @endphp
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <span class="badge badge-green" style="font-size: 11px;">🟢 {{ $allV->where('status','active')->count() }}</span>
-                    <span class="badge badge-orange" style="font-size: 11px;">🟠 {{ $allV->where('status','minor_repair')->count() }}</span>
-                    <span class="badge badge-red" style="font-size: 11px;">🔴 {{ $allV->where('status','major_repair')->count() }}</span>
+                    <span class="badge badge-green" style="font-size: 11px;">🟢 {{ $allSets->where('health_status', 'available')->count() }}</span>
+                    <span class="badge badge-yellow" style="font-size: 11px;">🟡 {{ $allSets->where('health_status', 'warning')->count() }}</span>
+                    <span class="badge badge-red" style="font-size: 11px;">🔴 {{ $allSets->where('health_status', 'out_of_service')->count() }}</span>
                 </div>
             </div>
         </nav>

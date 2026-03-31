@@ -551,6 +551,16 @@
         font-weight: 700;
     }
 
+    .service-status-note {
+        border-top: 1px dashed #cbd5e1;
+        padding: 4px 6px;
+        font-size: 9px;
+        line-height: 1.3;
+        color: #475569;
+        background: rgba(255,255,255,0.9);
+        text-align: center;
+    }
+
     .train-status-available {
         background: rgba(34, 197, 94, 0.28);
     }
@@ -1056,7 +1066,7 @@
                                 @foreach($entries as $entry)
                                     @php
                                         $selectedTrainSet = old("entries.{$entry->id}.train_set_id", $entry->train_set_id);
-                                        $selectedStatus = old("entries.{$entry->id}.service_status", $entry->service_status);
+                                        $selectedStatus = old("entries.{$entry->id}.service_status", $entry->effective_status);
                                         $selectedRowTheme = old("entries.{$entry->id}.row_theme", $entry->row_theme) ?? 'none';
                                     @endphp
                                     <tr class="{{ $selectedRowTheme !== 'none' ? 'row-theme-' . $selectedRowTheme : '' }}">
@@ -1067,6 +1077,8 @@
                                                     @foreach($trainSets as $trainSet)
                                                         <option
                                                             value="{{ $trainSet->id }}"
+                                                            data-health-status="{{ $trainSet->health_status }}"
+                                                            data-health-label="{{ $trainSet->health_label }}"
                                                             data-default-type="{{ $trainSet->default_consist_type }}"
                                                             data-default-berth="{{ $trainSet->default_berth_no }}"
                                                             data-default-platform="{{ $trainSet->default_ktw_platform }}"
@@ -1085,7 +1097,7 @@
                                                         >{{ $trainSet->code }}</option>
                                                     @endforeach
                                                 </select>
-                                                <select name="entries[{{ $entry->id }}][service_status]" class="cell-select service-status-select">
+                                                <select name="entries[{{ $entry->id }}][service_status]" class="cell-select service-status-select" data-manual-override="{{ $entry->status_mode === 'manual' ? '1' : '0' }}">
                                                     <option value="available" @selected($selectedStatus === 'available')>เขียว • พร้อมใช้</option>
                                                     <option value="warning" @selected($selectedStatus === 'warning')>เหลือง • ใกล้ซ่อม</option>
                                                     <option value="out_of_service" @selected($selectedStatus === 'out_of_service')>แดง • งดใช้</option>
@@ -1095,6 +1107,7 @@
                                                         <option value="{{ $value }}" @selected($selectedRowTheme === $value)>{{ $label }}</option>
                                                     @endforeach
                                                 </select>
+                                                <div class="service-status-note" data-status-note>{{ $entry->status_origin_label }}</div>
                                             </div>
                                         </td>
                                         <td>
@@ -1332,10 +1345,36 @@ document.addEventListener('DOMContentLoaded', function () {
         const endDepotInput = row.querySelector('.end-depot-input');
         const specialInstructionsInput = row.querySelector('.special-instructions-input');
         const trainCell = row.querySelector('[data-train-cell]');
+        const statusNote = row.querySelector('[data-status-note]');
+
+        const getSelectedTrainSetOption = () => trainSetSelect.options[trainSetSelect.selectedIndex];
 
         const applyStatusColor = () => {
             Object.values(statusClassMap).forEach((className) => trainCell.classList.remove(className));
             trainCell.classList.add(statusClassMap[statusSelect.value] || statusClassMap.available);
+        };
+
+        const syncStatusFromHealth = (force = false) => {
+            const selectedOption = getSelectedTrainSetOption();
+
+            if (! selectedOption) {
+                return;
+            }
+
+            const expectedStatus = selectedOption.dataset.healthStatus || 'available';
+
+            if (force || statusSelect.dataset.manualOverride !== '1') {
+                statusSelect.value = expectedStatus;
+                statusSelect.dataset.manualOverride = '0';
+            }
+
+            if (statusNote) {
+                statusNote.textContent = statusSelect.dataset.manualOverride === '1'
+                    ? 'Manual override'
+                    : `Auto from health • ${selectedOption.dataset.healthLabel || ''}`;
+            }
+
+            applyStatusColor();
         };
 
         const applyRowTheme = () => {
@@ -1411,12 +1450,22 @@ document.addEventListener('DOMContentLoaded', function () {
             applyRowTheme();
         };
 
-        trainSetSelect.addEventListener('change', syncTrainDefaults);
-        statusSelect.addEventListener('change', applyStatusColor);
+        statusSelect.dataset.manualOverride = statusSelect.dataset.manualOverride || '0';
+
+        trainSetSelect.addEventListener('change', () => {
+            syncTrainDefaults();
+            syncStatusFromHealth(true);
+        });
+        statusSelect.addEventListener('change', () => {
+            const selectedOption = getSelectedTrainSetOption();
+            const expectedStatus = selectedOption?.dataset.healthStatus || 'available';
+            statusSelect.dataset.manualOverride = statusSelect.value === expectedStatus ? '0' : '1';
+            syncStatusFromHealth(false);
+        });
         rowThemeSelect.addEventListener('change', applyRowTheme);
 
         syncTrainDefaults();
-        applyStatusColor();
+        syncStatusFromHealth(false);
         applyRowTheme();
 
         row.dataset.bindReady = '1';

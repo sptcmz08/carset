@@ -163,7 +163,7 @@
             <tbody>
                 @foreach($entries as $entry)
                     <tr class="{{ $entry->row_theme ? 'theme-' . $entry->row_theme : '' }}">
-                        <td class="status-{{ $entry->service_status }} train-cell"><span class="train-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</span><span class="train-code">{{ $entry->trainSet?->code }}</span></td>
+                        <td class="status-{{ $entry->effective_status }} train-cell"><span class="train-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</span><span class="train-code">{{ $entry->trainSet?->code }}</span></td>
                         <td>{{ $entry->berth_no }}</td>
                         <td>{{ $entry->consist_type }}</td>
                         <td>{{ $entry->outbound_run_no }}</td>
