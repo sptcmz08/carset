@@ -47,6 +47,34 @@
         margin: 0 auto;
     }
 
+    .paper-fit-stage.paper-fit-active {
+        overflow: hidden;
+        padding-bottom: 0;
+    }
+
+    .paper-fit-stage.paper-fit-active .paper-fit-canvas {
+        position: relative;
+    }
+
+    .paper-fit-stage.paper-fit-active .paper-card {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1880px;
+        max-width: none;
+        transform-origin: top left;
+    }
+
+    .paper-fit-stage.paper-fit-active .paper-table-wrap {
+        overflow: visible;
+        padding-bottom: 0;
+        scrollbar-width: none;
+    }
+
+    .paper-fit-stage.paper-fit-active .paper-table-wrap::-webkit-scrollbar {
+        display: none;
+    }
+
     .service-book-toolbar {
         display: flex;
         align-items: center;
@@ -823,49 +851,6 @@
         }
     }
 
-    @media (min-width: 1025px) and (max-width: 1366px) {
-        .paper-fit-stage {
-            overflow: visible;
-        }
-
-        .paper-fit-canvas {
-            zoom: 0.58;
-            width: calc(100% / 0.58);
-        }
-    }
-
-    @media (min-width: 1367px) and (max-width: 1536px) {
-        .paper-fit-stage {
-            overflow: visible;
-        }
-
-        .paper-fit-canvas {
-            zoom: 0.68;
-            width: calc(100% / 0.68);
-        }
-    }
-
-    @media (min-width: 1537px) and (max-width: 1720px) {
-        .paper-fit-stage {
-            overflow: visible;
-        }
-
-        .paper-fit-canvas {
-            zoom: 0.76;
-            width: calc(100% / 0.76);
-        }
-    }
-
-    @media (min-width: 1721px) and (max-width: 1920px) {
-        .paper-fit-stage {
-            overflow: visible;
-        }
-
-        .paper-fit-canvas {
-            zoom: 0.86;
-            width: calc(100% / 0.86);
-        }
-    }
 </style>
 
 <div class="service-book-shell">
@@ -943,7 +928,7 @@
     </div>
 
     <div class="scrollbar-hint">
-        <span><strong>เลื่อนซ้าย-ขวา:</strong> ใช้แถบสีส้มด้านล่างของตารางเพื่อดูคอลัมน์ทั้งหมด</span>
+        <span><strong>การแสดงผล:</strong> จอใหญ่จะย่อทั้งหน้ากระดาษอัตโนมัติ ส่วนจอเล็กยังเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของตารางได้</span>
         <span>Horizontal Scroll</span>
     </div>
 
@@ -1273,11 +1258,58 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const fitStage = document.querySelector('.paper-fit-stage');
     const fitCanvas = document.getElementById('paper-fit-canvas');
+    const paperCard = document.getElementById('paper-card');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
         out_of_service: 'train-status-out_of_service',
+    };
+
+    const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
+
+    const resetPaperFit = () => {
+        if (!fitStage || !fitCanvas || !paperCard) {
+            return;
+        }
+
+        fitStage.classList.remove('paper-fit-active');
+        fitCanvas.style.width = '';
+        fitCanvas.style.height = '';
+        paperCard.style.width = '';
+        paperCard.style.transform = '';
+    };
+
+    const applyPaperFit = () => {
+        if (!fitStage || !fitCanvas || !paperCard) {
+            return;
+        }
+
+        resetPaperFit();
+
+        if (!desktopFitQuery.matches) {
+            return;
+        }
+
+        paperCard.style.width = '1880px';
+
+        requestAnimationFrame(() => {
+            const stageWidth = fitStage.clientWidth;
+            const naturalWidth = paperCard.offsetWidth;
+            const naturalHeight = paperCard.offsetHeight;
+
+            if (!stageWidth || !naturalWidth || !naturalHeight) {
+                return;
+            }
+
+            const scale = Math.min(1, stageWidth / naturalWidth);
+
+            fitStage.classList.add('paper-fit-active');
+            fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
+            fitCanvas.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+            paperCard.style.transform = `scale(${scale})`;
+        });
     };
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
@@ -1399,6 +1431,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    applyPaperFit();
+
+    if (typeof desktopFitQuery.addEventListener === 'function') {
+        desktopFitQuery.addEventListener('change', applyPaperFit);
+    } else if (typeof desktopFitQuery.addListener === 'function') {
+        desktopFitQuery.addListener(applyPaperFit);
+    }
+
+    window.addEventListener('resize', applyPaperFit);
 });
 </script>
 @endsection
