@@ -13,6 +13,10 @@ class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
+        if (Vehicle::query()->exists()) {
+            return;
+        }
+
         $vehicles = [
             ['vehicle_code' => 'BUS-001', 'vehicle_type' => 'bus', 'license_plate' => '1กก 1234', 'brand' => 'Mercedes-Benz', 'model' => 'Tourismo', 'capacity' => 45, 'current_mileage' => 85200, 'next_service_mileage' => 90000, 'status' => 'active', 'last_maintenance_date' => '2026-02-15', 'next_maintenance_date' => '2026-04-15'],
             ['vehicle_code' => 'BUS-002', 'vehicle_type' => 'bus', 'license_plate' => '2กข 5678', 'brand' => 'Scania', 'model' => 'Touring', 'capacity' => 50, 'current_mileage' => 120500, 'next_service_mileage' => 121000, 'status' => 'active', 'last_maintenance_date' => '2026-01-20', 'next_maintenance_date' => '2026-03-28'],

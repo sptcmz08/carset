@@ -9,9 +9,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::get('/daily-plan', [DailyPlanController::class, 'index'])->name('daily-plan');
-Route::post('/daily-plan', [DailyPlanController::class, 'store'])->name('daily-plan.store');
-Route::put('/daily-plan/{dailyPlan}', [DailyPlanController::class, 'update'])->name('daily-plan.update');
-Route::delete('/daily-plan/{dailyPlan}', [DailyPlanController::class, 'destroy'])->name('daily-plan.destroy');
+Route::post('/daily-plan', [DailyPlanController::class, 'save'])->name('daily-plan.save');
+Route::post('/daily-plan/copy-previous', [DailyPlanController::class, 'copyPreviousDay'])->name('daily-plan.copy-previous');
+Route::get('/daily-plan/master', [DailyPlanController::class, 'master'])->name('daily-plan.master');
+Route::post('/daily-plan/master', [DailyPlanController::class, 'saveMaster'])->name('daily-plan.master.save');
+Route::get('/daily-plan/pdf', [DailyPlanController::class, 'exportPdf'])->name('daily-plan.pdf');
 
 Route::get('/fleet', [FleetController::class, 'index'])->name('fleet');
 Route::get('/fleet/{vehicle}', [FleetController::class, 'show'])->name('fleet.show');
