@@ -427,6 +427,7 @@
         table-layout: fixed;
         background: rgba(255,255,255,0.96);
         font-variant-numeric: tabular-nums;
+        font-size: 12px;
     }
 
     .service-plan-table th,
@@ -439,12 +440,12 @@
     .service-plan-table thead th {
         background: #e5e7eb;
         color: #111827;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.03em;
         text-align: center;
-        padding: 6px 4px;
+        padding: 7px 5px;
         line-height: 1.15;
     }
 
@@ -453,7 +454,7 @@
     }
 
     .service-plan-table thead .small-head {
-        font-size: 9px;
+        font-size: 10px;
     }
 
     .service-plan-table tbody td {
@@ -461,7 +462,7 @@
     }
 
     .service-plan-table tbody tr {
-        height: 56px;
+        height: 62px;
     }
 
     .service-plan-table tbody tr:nth-child(even) td {
@@ -475,9 +476,9 @@
         border: none;
         background: transparent;
         color: #111827;
-        font-size: 11px;
-        padding: 6px 4px;
-        min-height: 36px;
+        font-size: 12px;
+        padding: 8px 6px;
+        min-height: 40px;
         font-family: inherit;
     }
 
@@ -505,8 +506,8 @@
 
     .cell-textarea {
         resize: vertical;
-        min-height: 46px;
-        line-height: 1.35;
+        min-height: 52px;
+        line-height: 1.45;
     }
 
     .cell-input:focus,
@@ -523,17 +524,17 @@
     .train-set-stack {
         display: flex;
         flex-direction: column;
-        min-height: 70px;
+        min-height: 78px;
     }
 
     .train-set-order {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 22px;
+        min-height: 24px;
         border-bottom: 1px dashed #64748b;
         background: rgba(15, 23, 42, 0.08);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.08em;
         color: #334155;
@@ -541,13 +542,13 @@
 
     .train-set-stack .cell-select {
         font-weight: 700;
-        min-height: 34px;
+        min-height: 36px;
     }
 
     .service-status-select {
         border-top: 1px dashed #64748b;
-        min-height: 32px;
-        font-size: 10px;
+        min-height: 34px;
+        font-size: 11px;
         font-weight: 700;
         transition: color 0.15s ease;
     }
@@ -578,8 +579,8 @@
 
     .service-status-note {
         border-top: 1px dashed #cbd5e1;
-        padding: 4px 6px;
-        font-size: 9px;
+        padding: 5px 6px;
+        font-size: 10px;
         line-height: 1.3;
         color: #475569;
         background: rgba(255,255,255,0.9);
@@ -963,7 +964,7 @@
     </div>
 
     <div class="scrollbar-hint">
-        <span><strong>การแสดงผล:</strong> จอใหญ่จะย่อทั้งหน้ากระดาษอัตโนมัติ ส่วนจอเล็กยังเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของตารางได้</span>
+        <span><strong>การแสดงผล:</strong> ระบบจะพยายามย่อทั้งหน้าเฉพาะตอนที่ยังอ่านได้ชัด ถ้าย่อมากเกินไปจะคงขนาดจริงและเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของตารางแทน</span>
         <span>Horizontal Scroll</span>
     </div>
 
@@ -1311,6 +1312,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
+    const minimumFitScale = 0.92;
 
     const resetPaperFit = () => {
         if (!fitStage || !fitCanvas || !paperCard) {
@@ -1349,6 +1351,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const fitPadding = 28;
             const availableWidth = Math.max(stageWidth - fitPadding, 0);
             const scale = Math.min(1, availableWidth / naturalWidth);
+
+            if (scale < minimumFitScale) {
+                return;
+            }
 
             fitStage.classList.add('paper-fit-active');
             fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
