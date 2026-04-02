@@ -787,6 +787,49 @@
         color: #fbbf24;
     }
 
+    .sticky-x-scroll {
+        position: sticky;
+        top: 10px;
+        z-index: 30;
+        display: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 20px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.88);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+        scrollbar-width: auto;
+        scrollbar-color: #f59e0b rgba(15, 23, 42, 0.88);
+    }
+
+    .sticky-x-scroll.is-visible {
+        display: block;
+    }
+
+    .sticky-x-scroll::-webkit-scrollbar {
+        height: 18px;
+    }
+
+    .sticky-x-scroll::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.88);
+        border-radius: 999px;
+    }
+
+    .sticky-x-scroll::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        border-radius: 999px;
+        border: 2px solid rgba(15, 23, 42, 0.88);
+    }
+
+    .sticky-x-scroll::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(90deg, #fbbf24, #fde68a);
+    }
+
+    .sticky-x-scroll-inner {
+        height: 1px;
+    }
+
     .paper-signoff-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -830,6 +873,7 @@
         .service-book-toolbar,
         .service-book-summary,
         .paper-helper-bar,
+        .sticky-x-scroll,
         .flash-message {
             display: none !important;
         }
@@ -966,6 +1010,10 @@
     <div class="scrollbar-hint">
         <span><strong>การแสดงผล:</strong> ระบบจะพยายามย่อทั้งหน้าเฉพาะตอนที่ยังอ่านได้ชัด ถ้าย่อมากเกินไปจะคงขนาดจริงและเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของตารางแทน</span>
         <span>Horizontal Scroll</span>
+    </div>
+
+    <div class="sticky-x-scroll" id="sticky-x-scroll" aria-label="Sticky horizontal scroll">
+        <div class="sticky-x-scroll-inner" id="sticky-x-scroll-inner"></div>
     </div>
 
     <form id="service-plan-form" method="POST" action="{{ route('daily-plan.save') }}">
@@ -1300,6 +1348,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const fitStage = document.querySelector('.paper-fit-stage');
     const fitCanvas = document.getElementById('paper-fit-canvas');
     const paperCard = document.getElementById('paper-card');
+    const paperTableWrap = document.getElementById('paper-table-wrap');
+    const stickyXScroll = document.getElementById('sticky-x-scroll');
+    const stickyXScrollInner = document.getElementById('sticky-x-scroll-inner');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
@@ -1313,6 +1364,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
     const minimumFitScale = 0.92;
+    let syncingMainScroll = false;
+    let syncingStickyScroll = false;
+
+    const syncStickyScrollState = () => {
+        if (!paperTableWrap || !stickyXScroll || !stickyXScrollInner) {
+            return;
+        }
+
+        const hasOverflow = !fitStage?.classList.contains('paper-fit-active')
+            && (paperTableWrap.scrollWidth - paperTableWrap.clientWidth) > 2;
+
+        stickyXScroll.classList.toggle('is-visible', hasOverflow);
+        stickyXScrollInner.style.width = hasOverflow ? `${paperTableWrap.scrollWidth}px` : '0';
+
+        if (!hasOverflow) {
+            stickyXScroll.scrollLeft = 0;
+            return;
+        }
+
+        if (!syncingStickyScroll) {
+            syncingStickyScroll = true;
+            stickyXScroll.scrollLeft = paperTableWrap.scrollLeft;
+            syncingStickyScroll = false;
+        }
+    };
 
     const resetPaperFit = () => {
         if (!fitStage || !fitCanvas || !paperCard) {
@@ -1360,7 +1436,10 @@ document.addEventListener('DOMContentLoaded', function () {
             fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
             fitCanvas.style.height = `${Math.ceil(naturalHeight * scale)}px`;
             paperCard.style.transform = `scale(${scale})`;
+            syncStickyScrollState();
         });
+
+        syncStickyScrollState();
     };
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
@@ -1521,15 +1600,60 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    applyPaperFit();
+    if (paperTableWrap && stickyXScroll) {
+        paperTableWrap.addEventListener('scroll', () => {
+            if (syncingMainScroll) {
+                return;
+            }
 
-    if (typeof desktopFitQuery.addEventListener === 'function') {
-        desktopFitQuery.addEventListener('change', applyPaperFit);
-    } else if (typeof desktopFitQuery.addListener === 'function') {
-        desktopFitQuery.addListener(applyPaperFit);
+            syncingStickyScroll = true;
+            stickyXScroll.scrollLeft = paperTableWrap.scrollLeft;
+            syncingStickyScroll = false;
+        });
+
+        stickyXScroll.addEventListener('scroll', () => {
+            if (syncingStickyScroll) {
+                return;
+            }
+
+            syncingMainScroll = true;
+            paperTableWrap.scrollLeft = stickyXScroll.scrollLeft;
+            syncingMainScroll = false;
+        });
     }
 
-    window.addEventListener('resize', applyPaperFit);
+    applyPaperFit();
+    syncStickyScrollState();
+
+    if (typeof desktopFitQuery.addEventListener === 'function') {
+        desktopFitQuery.addEventListener('change', () => {
+            applyPaperFit();
+            syncStickyScrollState();
+        });
+    } else if (typeof desktopFitQuery.addListener === 'function') {
+        desktopFitQuery.addListener(() => {
+            applyPaperFit();
+            syncStickyScrollState();
+        });
+    }
+
+    window.addEventListener('resize', () => {
+        applyPaperFit();
+        syncStickyScrollState();
+    });
+
+    if (typeof ResizeObserver === 'function' && paperTableWrap) {
+        const resizeObserver = new ResizeObserver(() => {
+            syncStickyScrollState();
+        });
+
+        resizeObserver.observe(paperTableWrap);
+
+        const servicePlanTable = paperTableWrap.querySelector('.service-plan-table');
+        if (servicePlanTable) {
+            resizeObserver.observe(servicePlanTable);
+        }
+    }
 });
 </script>
 @endsection
