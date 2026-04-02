@@ -26,6 +26,14 @@
         height: 16px;
     }
 
+    html.has-fixed-scrollbar-ready .paper-fit-stage {
+        scrollbar-width: none;
+    }
+
+    html.has-fixed-scrollbar-ready .paper-fit-stage::-webkit-scrollbar {
+        display: none;
+    }
+
     .paper-fit-stage::-webkit-scrollbar-track {
         background: rgba(15, 23, 42, 0.45);
         border-radius: 999px;
@@ -402,6 +410,15 @@
 
     .paper-table-wrap::-webkit-scrollbar {
         height: 18px;
+    }
+
+    html.has-fixed-scrollbar-ready .paper-table-wrap {
+        scrollbar-width: none;
+        padding-bottom: 0;
+    }
+
+    html.has-fixed-scrollbar-ready .paper-table-wrap::-webkit-scrollbar {
+        display: none;
     }
 
     .paper-table-wrap::-webkit-scrollbar-track {
@@ -1377,6 +1394,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.documentElement.classList.add('has-fixed-scrollbar-ready');
+
     const fitStage = document.querySelector('.paper-fit-stage');
     const fitCanvas = document.getElementById('paper-fit-canvas');
     const paperCard = document.getElementById('paper-card');
