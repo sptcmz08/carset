@@ -787,10 +787,27 @@
         color: #fbbf24;
     }
 
-    .sticky-x-scroll {
-        position: sticky;
-        top: 10px;
-        z-index: 30;
+    .paper-view-controls {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .zoom-indicator {
+        min-width: 58px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #f8fafc;
+    }
+
+    .fixed-x-scroll {
+        position: fixed;
+        left: 0;
+        bottom: 12px;
+        z-index: 65;
         display: none;
         overflow-x: auto;
         overflow-y: hidden;
@@ -803,30 +820,30 @@
         scrollbar-color: #f59e0b rgba(15, 23, 42, 0.88);
     }
 
-    .sticky-x-scroll.is-visible {
+    .fixed-x-scroll.is-visible {
         display: block;
     }
 
-    .sticky-x-scroll::-webkit-scrollbar {
+    .fixed-x-scroll::-webkit-scrollbar {
         height: 18px;
     }
 
-    .sticky-x-scroll::-webkit-scrollbar-track {
+    .fixed-x-scroll::-webkit-scrollbar-track {
         background: rgba(15, 23, 42, 0.88);
         border-radius: 999px;
     }
 
-    .sticky-x-scroll::-webkit-scrollbar-thumb {
+    .fixed-x-scroll::-webkit-scrollbar-thumb {
         background: linear-gradient(90deg, #f59e0b, #fbbf24);
         border-radius: 999px;
         border: 2px solid rgba(15, 23, 42, 0.88);
     }
 
-    .sticky-x-scroll::-webkit-scrollbar-thumb:hover {
+    .fixed-x-scroll::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(90deg, #fbbf24, #fde68a);
     }
 
-    .sticky-x-scroll-inner {
+    .fixed-x-scroll-inner {
         height: 1px;
     }
 
@@ -873,7 +890,8 @@
         .service-book-toolbar,
         .service-book-summary,
         .paper-helper-bar,
-        .sticky-x-scroll,
+        .paper-view-controls,
+        .fixed-x-scroll,
         .flash-message {
             display: none !important;
         }
@@ -1012,8 +1030,22 @@
         <span>Horizontal Scroll</span>
     </div>
 
-    <div class="sticky-x-scroll" id="sticky-x-scroll" aria-label="Sticky horizontal scroll">
-        <div class="sticky-x-scroll-inner" id="sticky-x-scroll-inner"></div>
+    <div class="paper-view-controls">
+        <button type="button" class="btn btn-secondary btn-sm" id="zoom-out-btn">
+            <i class="fas fa-magnifying-glass-minus"></i>
+            Zoom Out
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="zoom-reset-btn">
+            <span class="zoom-indicator" id="zoom-indicator">100%</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="zoom-in-btn">
+            <i class="fas fa-magnifying-glass-plus"></i>
+            Zoom In
+        </button>
+    </div>
+
+    <div class="fixed-x-scroll" id="fixed-x-scroll" aria-label="Fixed horizontal scroll">
+        <div class="fixed-x-scroll-inner" id="fixed-x-scroll-inner"></div>
     </div>
 
     <form id="service-plan-form" method="POST" action="{{ route('daily-plan.save') }}">
@@ -1349,8 +1381,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const fitCanvas = document.getElementById('paper-fit-canvas');
     const paperCard = document.getElementById('paper-card');
     const paperTableWrap = document.getElementById('paper-table-wrap');
-    const stickyXScroll = document.getElementById('sticky-x-scroll');
-    const stickyXScrollInner = document.getElementById('sticky-x-scroll-inner');
+    const servicePlanTable = paperTableWrap?.querySelector('.service-plan-table');
+    const fixedXScroll = document.getElementById('fixed-x-scroll');
+    const fixedXScrollInner = document.getElementById('fixed-x-scroll-inner');
+    const zoomIndicator = document.getElementById('zoom-indicator');
+    const zoomInButton = document.getElementById('zoom-in-btn');
+    const zoomOutButton = document.getElementById('zoom-out-btn');
+    const zoomResetButton = document.getElementById('zoom-reset-btn');
     const statusClassMap = {
         available: 'train-status-available',
         warning: 'train-status-warning',
@@ -1364,29 +1401,64 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
     const minimumFitScale = 0.92;
+    const defaultTableZoom = 1;
+    const minimumTableZoom = 0.8;
+    const maximumTableZoom = 1.3;
+    const tableZoomStep = 0.1;
+    let tableZoomLevel = defaultTableZoom;
     let syncingMainScroll = false;
-    let syncingStickyScroll = false;
+    let syncingFixedScroll = false;
 
-    const syncStickyScrollState = () => {
-        if (!paperTableWrap || !stickyXScroll || !stickyXScrollInner) {
+    const updateZoomIndicator = () => {
+        if (zoomIndicator) {
+            zoomIndicator.textContent = `${Math.round(tableZoomLevel * 100)}%`;
+        }
+
+        if (zoomOutButton) {
+            zoomOutButton.disabled = tableZoomLevel <= minimumTableZoom;
+        }
+
+        if (zoomInButton) {
+            zoomInButton.disabled = tableZoomLevel >= maximumTableZoom;
+        }
+    };
+
+    const applyTableZoom = () => {
+        if (!servicePlanTable) {
+            return;
+        }
+
+        servicePlanTable.style.zoom = `${tableZoomLevel}`;
+        updateZoomIndicator();
+    };
+
+    const syncFixedScrollState = () => {
+        if (!paperTableWrap || !fixedXScroll || !fixedXScrollInner || !fitStage) {
             return;
         }
 
         const hasOverflow = !fitStage?.classList.contains('paper-fit-active')
             && (paperTableWrap.scrollWidth - paperTableWrap.clientWidth) > 2;
 
-        stickyXScroll.classList.toggle('is-visible', hasOverflow);
-        stickyXScrollInner.style.width = hasOverflow ? `${paperTableWrap.scrollWidth}px` : '0';
+        fixedXScroll.classList.toggle('is-visible', hasOverflow);
+        fixedXScrollInner.style.width = hasOverflow ? `${paperTableWrap.scrollWidth}px` : '0';
 
         if (!hasOverflow) {
-            stickyXScroll.scrollLeft = 0;
+            fixedXScroll.scrollLeft = 0;
             return;
         }
 
-        if (!syncingStickyScroll) {
-            syncingStickyScroll = true;
-            stickyXScroll.scrollLeft = paperTableWrap.scrollLeft;
-            syncingStickyScroll = false;
+        const stageRect = fitStage.getBoundingClientRect();
+        const left = Math.max(stageRect.left, 12);
+        const width = Math.max(Math.min(stageRect.width, window.innerWidth - left - 12), 240);
+
+        fixedXScroll.style.left = `${left}px`;
+        fixedXScroll.style.width = `${width}px`;
+
+        if (!syncingFixedScroll) {
+            syncingFixedScroll = true;
+            fixedXScroll.scrollLeft = paperTableWrap.scrollLeft;
+            syncingFixedScroll = false;
         }
     };
 
@@ -1409,7 +1481,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         resetPaperFit();
 
+        if (tableZoomLevel !== defaultTableZoom) {
+            syncFixedScrollState();
+            return;
+        }
+
         if (!desktopFitQuery.matches) {
+            syncFixedScrollState();
             return;
         }
 
@@ -1429,6 +1507,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const scale = Math.min(1, availableWidth / naturalWidth);
 
             if (scale < minimumFitScale) {
+                syncFixedScrollState();
                 return;
             }
 
@@ -1436,10 +1515,10 @@ document.addEventListener('DOMContentLoaded', function () {
             fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
             fitCanvas.style.height = `${Math.ceil(naturalHeight * scale)}px`;
             paperCard.style.transform = `scale(${scale})`;
-            syncStickyScrollState();
+            syncFixedScrollState();
         });
 
-        syncStickyScrollState();
+        syncFixedScrollState();
     };
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
@@ -1600,51 +1679,78 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (paperTableWrap && stickyXScroll) {
+    if (zoomOutButton) {
+        zoomOutButton.addEventListener('click', () => {
+            tableZoomLevel = Math.max(minimumTableZoom, Number((tableZoomLevel - tableZoomStep).toFixed(2)));
+            applyTableZoom();
+            applyPaperFit();
+        });
+    }
+
+    if (zoomInButton) {
+        zoomInButton.addEventListener('click', () => {
+            tableZoomLevel = Math.min(maximumTableZoom, Number((tableZoomLevel + tableZoomStep).toFixed(2)));
+            applyTableZoom();
+            applyPaperFit();
+        });
+    }
+
+    if (zoomResetButton) {
+        zoomResetButton.addEventListener('click', () => {
+            tableZoomLevel = defaultTableZoom;
+            applyTableZoom();
+            applyPaperFit();
+        });
+    }
+
+    if (paperTableWrap && fixedXScroll) {
         paperTableWrap.addEventListener('scroll', () => {
             if (syncingMainScroll) {
                 return;
             }
 
-            syncingStickyScroll = true;
-            stickyXScroll.scrollLeft = paperTableWrap.scrollLeft;
-            syncingStickyScroll = false;
+            syncingFixedScroll = true;
+            fixedXScroll.scrollLeft = paperTableWrap.scrollLeft;
+            syncingFixedScroll = false;
         });
 
-        stickyXScroll.addEventListener('scroll', () => {
-            if (syncingStickyScroll) {
+        fixedXScroll.addEventListener('scroll', () => {
+            if (syncingFixedScroll) {
                 return;
             }
 
             syncingMainScroll = true;
-            paperTableWrap.scrollLeft = stickyXScroll.scrollLeft;
+            paperTableWrap.scrollLeft = fixedXScroll.scrollLeft;
             syncingMainScroll = false;
         });
     }
 
+    applyTableZoom();
     applyPaperFit();
-    syncStickyScrollState();
+    syncFixedScrollState();
 
     if (typeof desktopFitQuery.addEventListener === 'function') {
         desktopFitQuery.addEventListener('change', () => {
             applyPaperFit();
-            syncStickyScrollState();
+            syncFixedScrollState();
         });
     } else if (typeof desktopFitQuery.addListener === 'function') {
         desktopFitQuery.addListener(() => {
             applyPaperFit();
-            syncStickyScrollState();
+            syncFixedScrollState();
         });
     }
 
     window.addEventListener('resize', () => {
         applyPaperFit();
-        syncStickyScrollState();
+        syncFixedScrollState();
     });
+
+    window.addEventListener('scroll', syncFixedScrollState, { passive: true });
 
     if (typeof ResizeObserver === 'function' && paperTableWrap) {
         const resizeObserver = new ResizeObserver(() => {
-            syncStickyScrollState();
+            syncFixedScrollState();
         });
 
         resizeObserver.observe(paperTableWrap);
