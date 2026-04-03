@@ -10,6 +10,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+    @php
+        $isDailyPlanLayout = request()->routeIs('daily-plan*');
+        $allTrainSets = \App\Models\TrainSet::all();
+        $alertCount = $allTrainSets->filter(fn ($trainSet) => in_array($trainSet->health_status, ['warning', 'out_of_service'], true))->count();
+        $allSets = $allTrainSets;
+    @endphp
     <style>
         :root {
             --navy: #0f172a;
@@ -88,6 +94,10 @@
             display: block; margin-top: 2px;
         }
 
+        body.layout-daily-plan .sidebar {
+            display: none;
+        }
+
         .sidebar-nav { padding: 16px 12px; flex: 1; }
 
         .sidebar-nav .nav-label {
@@ -127,6 +137,10 @@
             min-height: 100vh;
         }
 
+        body.layout-daily-plan .main-content {
+            margin-left: 0;
+        }
+
         .topbar {
             padding: 16px 32px;
             display: flex; align-items: center; justify-content: space-between;
@@ -140,6 +154,72 @@
         .topbar .datetime {
             color: var(--text-muted); font-size: 13px;
             display: flex; align-items: center; gap: 8px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-center-nav {
+            display: none;
+        }
+
+        body.layout-daily-plan .topbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+            gap: 16px;
+            align-items: center;
+            padding: 14px 24px;
+        }
+
+        body.layout-daily-plan .topbar-center-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        body.layout-daily-plan .topbar .datetime {
+            justify-self: end;
+        }
+
+        .topbar-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            transition: all 0.2s ease;
+        }
+
+        .topbar-nav-link:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+
+        .topbar-nav-link.active {
+            color: var(--amber);
+            border-color: rgba(245, 158, 11, 0.24);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+        }
+
+        .topbar-nav-link .badge {
+            margin-left: 4px;
+            background: var(--red);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-weight: 700;
         }
 
         .page-content { padding: 28px 32px; }
@@ -397,11 +477,19 @@
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
+            body.layout-daily-plan .sidebar { display: flex; }
             .mobile-toggle {
                 display: flex; align-items: center; justify-content: center;
                 width: 40px; height: 40px; border-radius: 10px;
                 background: rgba(255,255,255,0.06); border: none;
                 color: var(--text); font-size: 18px; cursor: pointer;
+            }
+            body.layout-daily-plan .topbar {
+                display: flex;
+                padding: 16px;
+            }
+            body.layout-daily-plan .topbar-center-nav {
+                display: none;
             }
             .stat-grid { grid-template-columns: 1fr 1fr; }
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -417,7 +505,7 @@
         .empty-state p { font-size: 14px; }
     </style>
 </head>
-<body x-data="{ sidebarOpen: false }">
+<body x-data="{ sidebarOpen: false }" class="{{ $isDailyPlanLayout ? 'layout-daily-plan' : '' }}">
 
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'open': sidebarOpen }" @click.away="sidebarOpen = false">
@@ -438,10 +526,6 @@
             </a>
             <a href="{{ route('fleet') }}" class="nav-link {{ request()->routeIs('fleet') ? 'active' : '' }}">
                 <i class="fas fa-train-subway"></i> ฐานข้อมูลขบวน
-                @php
-                    $allTrainSets = \App\Models\TrainSet::all();
-                    $alertCount = $allTrainSets->filter(fn ($trainSet) => in_array($trainSet->health_status, ['warning', 'out_of_service'], true))->count();
-                @endphp
                 @if($alertCount > 0)
                     <span class="badge">{{ $alertCount }}</span>
                 @endif
@@ -453,7 +537,6 @@
             <div class="nav-label" style="margin-top: 24px;">ข้อมูล</div>
             <div style="padding: 12px 16px;">
                 <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">สถานะขบวนทั้งหมด</div>
-                @php $allSets = $allTrainSets ?? \App\Models\TrainSet::all(); @endphp
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <span class="badge badge-green" style="font-size: 11px;">🟢 {{ $allSets->where('health_status', 'available')->count() }}</span>
                     <span class="badge badge-yellow" style="font-size: 11px;">🟡 {{ $allSets->where('health_status', 'warning')->count() }}</span>
@@ -466,12 +549,35 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="topbar">
-            <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="topbar-left">
                 <button class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h2>@yield('title', 'แดชบอร์ด')</h2>
             </div>
+            @if($isDailyPlanLayout)
+                <nav class="topbar-center-nav" aria-label="Main navigation">
+                    <a href="{{ route('dashboard') }}" class="topbar-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>แดชบอร์ด</span>
+                    </a>
+                    <a href="{{ route('daily-plan') }}" class="topbar-nav-link {{ request()->routeIs('daily-plan') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>แผนงานรายวัน</span>
+                    </a>
+                    <a href="{{ route('fleet') }}" class="topbar-nav-link {{ request()->routeIs('fleet') ? 'active' : '' }}">
+                        <i class="fas fa-train-subway"></i>
+                        <span>ฐานข้อมูลขบวน</span>
+                        @if($alertCount > 0)
+                            <span class="badge">{{ $alertCount }}</span>
+                        @endif
+                    </a>
+                    <a href="{{ route('reports') }}" class="topbar-nav-link {{ request()->routeIs('reports') ? 'active' : '' }}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>รายงาน</span>
+                    </a>
+                </nav>
+            @endif
             <div class="datetime">
                 <i class="far fa-clock"></i>
                 <span>{{ \Carbon\Carbon::now()->locale('th')->translatedFormat('l d F Y') }}</span>
