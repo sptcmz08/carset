@@ -541,20 +541,7 @@
     .train-set-stack {
         display: flex;
         flex-direction: column;
-        min-height: 78px;
-    }
-
-    .train-set-order {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 24px;
-        border-bottom: 1px dashed #64748b;
-        background: rgba(15, 23, 42, 0.08);
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        color: #334155;
+        min-height: 58px;
     }
 
     .train-set-stack .cell-select {
@@ -562,46 +549,29 @@
         min-height: 36px;
     }
 
-    .service-status-select {
+    .service-status-display {
         border-top: 1px dashed #64748b;
         min-height: 34px;
         font-size: 11px;
         font-weight: 700;
         transition: color 0.15s ease;
-    }
-
-    .service-status-select.status-available {
-        color: #15803d;
-    }
-
-    .service-status-select.status-warning {
-        color: #a16207;
-    }
-
-    .service-status-select.status-out_of_service {
-        color: #b91c1c;
-    }
-
-    .service-status-select option[value="available"] {
-        color: #15803d;
-    }
-
-    .service-status-select option[value="warning"] {
-        color: #a16207;
-    }
-
-    .service-status-select option[value="out_of_service"] {
-        color: #b91c1c;
-    }
-
-    .service-status-note {
-        border-top: 1px dashed #cbd5e1;
-        padding: 5px 6px;
-        font-size: 10px;
-        line-height: 1.3;
-        color: #475569;
-        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 8px;
         text-align: center;
+    }
+
+    .service-status-display.status-available {
+        color: #15803d;
+    }
+
+    .service-status-display.status-warning {
+        color: #a16207;
+    }
+
+    .service-status-display.status-out_of_service {
+        color: #b91c1c;
     }
 
     .train-status-available {
@@ -1195,7 +1165,6 @@
                                     <tr class="{{ $selectedRowTheme !== 'none' ? 'row-theme-' . $selectedRowTheme : '' }}">
                                         <td class="train-set-cell train-status-{{ $selectedStatus }}" data-train-cell>
                                             <div class="train-set-stack">
-                                                <div class="train-set-order">#{{ str_pad((string) $entry->display_order, 2, '0', STR_PAD_LEFT) }}</div>
                                                 <select name="entries[{{ $entry->id }}][train_set_id]" class="cell-select train-set-select">
                                                     @foreach($trainSets as $trainSet)
                                                         <option
@@ -1215,22 +1184,13 @@
                                                             data-default-next-depart="{{ $trainSet->default_ktw_next_depart_time }}"
                                                             data-default-in-run="{{ $trainSet->default_inbound_run_no }}"
                                                             data-default-end-time="{{ $trainSet->default_end_time }}"
-                                                            data-default-row-theme="{{ $trainSet->default_row_theme }}"
                                                             @selected((string) $selectedTrainSet === (string) $trainSet->id)
                                                         >{{ $trainSet->code }}</option>
                                                     @endforeach
                                                 </select>
-                                                <select name="entries[{{ $entry->id }}][service_status]" class="cell-select service-status-select" data-manual-override="{{ $entry->status_mode === 'manual' ? '1' : '0' }}">
-                                                    <option value="available" @selected($selectedStatus === 'available')>เขียว • พร้อมใช้</option>
-                                                    <option value="warning" @selected($selectedStatus === 'warning')>เหลือง • ใกล้ซ่อม</option>
-                                                    <option value="out_of_service" @selected($selectedStatus === 'out_of_service')>แดง • งดใช้</option>
-                                                </select>
-                                                <select name="entries[{{ $entry->id }}][row_theme]" class="cell-select row-theme-select">
-                                                    @foreach($rowThemes as $value => $label)
-                                                        <option value="{{ $value }}" @selected($selectedRowTheme === $value)>{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <div class="service-status-note" data-status-note>{{ $entry->status_origin_label }}</div>
+                                                <input type="hidden" name="entries[{{ $entry->id }}][service_status]" value="{{ $selectedStatus }}" class="service-status-input">
+                                                <input type="hidden" name="entries[{{ $entry->id }}][row_theme]" value="{{ $selectedRowTheme }}">
+                                                <div class="service-status-display status-{{ $selectedStatus }}" data-status-display>{{ $entry->trainSet?->health_label ?? $entry->status_origin_label }}</div>
                                             </div>
                                         </td>
                                         <td>
@@ -1542,8 +1502,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.service-plan-table tbody tr').forEach((row) => {
         const trainSetSelect = row.querySelector('.train-set-select');
-        const statusSelect = row.querySelector('.service-status-select');
-        const rowThemeSelect = row.querySelector('.row-theme-select');
+        const serviceStatusInput = row.querySelector('.service-status-input');
+        const serviceStatusDisplay = row.querySelector('[data-status-display]');
         const berthInput = row.querySelector('.berth-input');
         const consistTypeSelect = row.querySelector('.consist-type-select');
         const outRunInput = row.querySelector('.out-run-input');
@@ -1558,18 +1518,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const endDepotInput = row.querySelector('.end-depot-input');
         const specialInstructionsInput = row.querySelector('.special-instructions-input');
         const trainCell = row.querySelector('[data-train-cell]');
-        const statusNote = row.querySelector('[data-status-note]');
 
         const getSelectedTrainSetOption = () => trainSetSelect.options[trainSetSelect.selectedIndex];
 
         const applyStatusColor = () => {
             Object.values(statusClassMap).forEach((className) => trainCell.classList.remove(className));
-            Object.values(statusSelectClassMap).forEach((className) => statusSelect.classList.remove(className));
-            trainCell.classList.add(statusClassMap[statusSelect.value] || statusClassMap.available);
-            statusSelect.classList.add(statusSelectClassMap[statusSelect.value] || statusSelectClassMap.available);
+            Object.values(statusSelectClassMap).forEach((className) => serviceStatusDisplay?.classList.remove(className));
+            trainCell.classList.add(statusClassMap[serviceStatusInput?.value] || statusClassMap.available);
+            serviceStatusDisplay?.classList.add(statusSelectClassMap[serviceStatusInput?.value] || statusSelectClassMap.available);
         };
 
-        const syncStatusFromHealth = (force = false) => {
+        const syncStatusFromHealth = () => {
             const selectedOption = getSelectedTrainSetOption();
 
             if (! selectedOption) {
@@ -1577,26 +1536,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const expectedStatus = selectedOption.dataset.healthStatus || 'available';
+            const expectedLabel = selectedOption.dataset.healthLabel || expectedStatus;
 
-            if (force || statusSelect.dataset.manualOverride !== '1') {
-                statusSelect.value = expectedStatus;
-                statusSelect.dataset.manualOverride = '0';
+            if (serviceStatusInput) {
+                serviceStatusInput.value = expectedStatus;
             }
 
-            if (statusNote) {
-                statusNote.textContent = statusSelect.dataset.manualOverride === '1'
-                    ? 'Manual override'
-                    : `Auto from health • ${selectedOption.dataset.healthLabel || ''}`;
+            if (serviceStatusDisplay) {
+                serviceStatusDisplay.textContent = expectedLabel;
             }
 
             applyStatusColor();
-        };
-
-        const applyRowTheme = () => {
-            ['green', 'pink', 'peach', 'blue', 'red', 'yellow'].forEach((theme) => row.classList.remove('row-theme-' + theme));
-            if (rowThemeSelect.value && rowThemeSelect.value !== 'none') {
-                row.classList.add('row-theme-' + rowThemeSelect.value);
-            }
         };
 
         const syncTrainDefaults = (forceFill = false) => {
@@ -1657,31 +1607,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (forceFill || ! specialInstructionsInput.value) {
                 specialInstructionsInput.value = selectedOption.dataset.defaultSpecial || '';
             }
-
-            if (forceFill || ! rowThemeSelect.value || rowThemeSelect.value === 'none') {
-                rowThemeSelect.value = selectedOption.dataset.defaultRowTheme || 'none';
-            }
-
-            applyRowTheme();
         };
-
-        statusSelect.dataset.manualOverride = statusSelect.dataset.manualOverride || '0';
 
         trainSetSelect.addEventListener('change', () => {
             syncTrainDefaults();
-            syncStatusFromHealth(true);
+            syncStatusFromHealth();
         });
-        statusSelect.addEventListener('change', () => {
-            const selectedOption = getSelectedTrainSetOption();
-            const expectedStatus = selectedOption?.dataset.healthStatus || 'available';
-            statusSelect.dataset.manualOverride = statusSelect.value === expectedStatus ? '0' : '1';
-            syncStatusFromHealth(false);
-        });
-        rowThemeSelect.addEventListener('change', applyRowTheme);
 
         syncTrainDefaults();
-        syncStatusFromHealth(false);
-        applyRowTheme();
+        syncStatusFromHealth();
 
         row.dataset.bindReady = '1';
         row.syncTrainDefaults = syncTrainDefaults;
