@@ -1022,7 +1022,7 @@
             Zoom Out
         </button>
         <button type="button" class="btn btn-secondary btn-sm" id="zoom-reset-btn">
-            <span class="zoom-indicator" id="zoom-indicator">100%</span>
+            <span class="zoom-indicator" id="zoom-indicator">80%</span>
         </button>
         <button type="button" class="btn btn-secondary btn-sm" id="zoom-in-btn">
             <i class="fas fa-magnifying-glass-plus"></i>
@@ -1367,12 +1367,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const maximumTableZoom = 1.3;
     const tableZoomStep = 0.1;
     let tableZoomLevel = defaultTableZoom;
+    let effectiveZoomLevel = preferredDesktopScale;
     let syncingMainScroll = false;
     let syncingFixedScroll = false;
 
     const updateZoomIndicator = () => {
         if (zoomIndicator) {
-            zoomIndicator.textContent = `${Math.round(tableZoomLevel * 100)}%`;
+            zoomIndicator.textContent = `${Math.round(effectiveZoomLevel * 100)}%`;
         }
 
         if (zoomOutButton) {
@@ -1390,6 +1391,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         servicePlanTable.style.zoom = `${tableZoomLevel}`;
+        effectiveZoomLevel = tableZoomLevel;
         updateZoomIndicator();
     };
 
@@ -1433,6 +1435,7 @@ document.addEventListener('DOMContentLoaded', function () {
         fitCanvas.style.height = '';
         paperCard.style.width = '';
         paperCard.style.transform = '';
+        effectiveZoomLevel = tableZoomLevel;
     };
 
     const applyPaperFit = () => {
@@ -1443,11 +1446,13 @@ document.addEventListener('DOMContentLoaded', function () {
         resetPaperFit();
 
         if (tableZoomLevel !== defaultTableZoom) {
+            updateZoomIndicator();
             syncFixedScrollState();
             return;
         }
 
         if (!desktopFitQuery.matches) {
+            updateZoomIndicator();
             syncFixedScrollState();
             return;
         }
@@ -1468,6 +1473,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const scale = Math.min(1, availableWidth / naturalWidth);
 
             if (scale < minimumFitScale) {
+                effectiveZoomLevel = tableZoomLevel;
+                updateZoomIndicator();
                 syncFixedScrollState();
                 return;
             }
@@ -1477,6 +1484,8 @@ document.addEventListener('DOMContentLoaded', function () {
             fitCanvas.style.width = `${Math.ceil(naturalWidth * appliedScale)}px`;
             fitCanvas.style.height = `${Math.ceil(naturalHeight * appliedScale)}px`;
             paperCard.style.transform = `scale(${appliedScale})`;
+            effectiveZoomLevel = appliedScale;
+            updateZoomIndicator();
             syncFixedScrollState();
         });
 
