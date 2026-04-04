@@ -4,13 +4,13 @@
 @section('content')
 <style>
     .page-content {
-        padding: 14px 16px 34px;
+        padding: 10px 14px 28px;
     }
 
     .service-book-shell {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
     .paper-fit-stage {
@@ -87,7 +87,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
     }
 
@@ -102,16 +102,14 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        padding: 8px 10px;
+        border-radius: 0;
+        padding: 6px 8px;
     }
 
     .service-book-summary {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(180px, 1fr));
-        gap: 8px;
+        display: none;
     }
 
     .service-book-summary .summary-card {
@@ -152,28 +150,28 @@
     }
 
     .paper-card {
-        background: #f8fafc;
-        color: #0f172a;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.08);
+        background: #ffffff;
+        color: #111827;
+        border-radius: 0;
+        border: 1px solid #111827;
         overflow: hidden;
-        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+        box-shadow: none;
     }
 
     .paper-topline {
         display: grid;
         grid-template-columns: 1.1fr 1fr 1.1fr;
         align-items: stretch;
-        border-bottom: 2px solid #111827;
+        border-bottom: 1px solid #111827;
         background: #fff;
     }
 
     .paper-topline > div {
-        min-height: 38px;
+        min-height: 28px;
         display: flex;
         align-items: center;
-        padding: 6px 12px;
-        font-size: 11px;
+        padding: 4px 10px;
+        font-size: 10px;
         border-right: 1px solid #111827;
     }
 
@@ -193,18 +191,18 @@
     }
 
     .paper-header {
-        padding: 12px 16px;
-        border-bottom: 2px solid #1e293b;
+        padding: 10px 16px;
+        border-bottom: 1px solid #111827;
         display: grid;
-        grid-template-columns: 220px 1fr 260px;
+        grid-template-columns: 180px 1fr 260px;
         gap: 10px;
         align-items: center;
-        background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+        background: #fff;
     }
 
     .paper-brand {
         font-weight: 700;
-        font-size: 24px;
+        font-size: 18px;
         letter-spacing: 0.5px;
         color: #1e3a8a;
     }
@@ -218,16 +216,16 @@
     .paper-brand-mark::before {
         content: '';
         display: inline-block;
-        width: 34px;
-        height: 14px;
-        border-top: 4px solid #b91c1c;
-        border-right: 4px solid #1d4ed8;
+        width: 28px;
+        height: 11px;
+        border-top: 3px solid #b91c1c;
+        border-right: 3px solid #1d4ed8;
         transform: skewX(-28deg);
         margin-top: 2px;
     }
 
     .paper-subtitle {
-        font-size: 11px;
+        font-size: 9px;
         color: #475569;
         margin-top: 2px;
     }
@@ -238,7 +236,7 @@
 
     .paper-title input {
         width: 100%;
-        font-size: 24px;
+        font-size: 16px;
         font-weight: 700;
         text-align: center;
         border: none;
@@ -285,11 +283,11 @@
     }
 
     .paper-meta-grid div {
-        padding: 7px 8px;
+        padding: 5px 6px;
         border-right: 1px solid #111827;
         border-bottom: 1px solid #111827;
-        font-size: 11px;
-        min-height: 34px;
+        font-size: 10px;
+        min-height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -314,8 +312,7 @@
     }
 
     .paper-reference-bar {
-        display: grid;
-        grid-template-columns: 1.1fr 0.9fr 0.9fr;
+        display: none;
         border-bottom: 1px solid #1e293b;
         background: #fff;
     }
@@ -353,35 +350,50 @@
     }
 
     .paper-toolbar {
-        padding: 10px 16px;
+        padding: 0;
         display: grid;
-        grid-template-columns: 1fr 0.7fr;
-        gap: 12px;
-        border-bottom: 1px solid #cbd5e1;
+        grid-template-columns: 1.35fr 0.65fr;
+        gap: 0;
+        border-bottom: 1px solid #111827;
         background: #fff;
     }
 
     .paper-toolbar .field-row {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 0;
+        min-height: 30px;
+    }
+
+    .paper-toolbar .field-row:first-child {
+        border-right: 1px solid #111827;
     }
 
     .paper-toolbar label {
-        font-size: 12px;
+        min-width: 92px;
+        min-height: 30px;
+        padding: 6px 8px;
+        font-size: 10px;
         font-weight: 700;
-        color: #334155;
+        color: #111827;
         text-transform: uppercase;
         letter-spacing: 0.06em;
+        background: #1f2937;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        border-right: 1px solid #111827;
     }
 
     .paper-toolbar input {
         flex: 1;
         border: none;
-        border-bottom: 1px solid #94a3b8;
+        border-bottom: none;
         background: transparent;
         color: #111827;
-        padding: 6px 2px;
+        padding: 6px 10px;
+        font-size: 11px;
+        min-height: 30px;
     }
 
     .paper-toolbar input:focus {
@@ -391,18 +403,13 @@
 
     .paper-toolbar .field-row.compact {
         justify-content: flex-end;
+        border-left: 1px solid #111827;
     }
 
     .paper-table-wrap {
         overflow-x: auto;
         overflow-y: hidden;
-        background: repeating-linear-gradient(
-            0deg,
-            rgba(148, 163, 184, 0.05),
-            rgba(148, 163, 184, 0.05) 1px,
-            transparent 1px,
-            transparent 44px
-        );
+        background: #fff;
         padding-bottom: 10px;
         scrollbar-width: auto;
         scrollbar-color: #f59e0b rgba(15, 23, 42, 0.65);
@@ -442,14 +449,14 @@
         min-width: 1800px;
         border-collapse: collapse;
         table-layout: fixed;
-        background: rgba(255,255,255,0.96);
+        background: #fff;
         font-variant-numeric: tabular-nums;
-        font-size: 12px;
+        font-size: 10px;
     }
 
     .service-plan-table th,
     .service-plan-table td {
-        border: 1px solid #1f2937;
+        border: 1px solid #111827;
         padding: 0;
         vertical-align: middle;
     }
@@ -457,12 +464,12 @@
     .service-plan-table thead th {
         background: #e5e7eb;
         color: #111827;
-        font-size: 11px;
+        font-size: 9px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.03em;
         text-align: center;
-        padding: 7px 5px;
+        padding: 5px 4px;
         line-height: 1.15;
     }
 
@@ -471,7 +478,7 @@
     }
 
     .service-plan-table thead .small-head {
-        font-size: 10px;
+        font-size: 8px;
     }
 
     .service-plan-table tbody td {
@@ -479,11 +486,7 @@
     }
 
     .service-plan-table tbody tr {
-        height: 62px;
-    }
-
-    .service-plan-table tbody tr:nth-child(even) td {
-        background: rgba(248, 250, 252, 0.96);
+        height: 52px;
     }
 
     .cell-input,
@@ -493,9 +496,9 @@
         border: none;
         background: transparent;
         color: #111827;
-        font-size: 12px;
-        padding: 8px 6px;
-        min-height: 40px;
+        font-size: 10px;
+        padding: 6px 4px;
+        min-height: 30px;
         font-family: inherit;
     }
 
@@ -523,8 +526,8 @@
 
     .cell-textarea {
         resize: vertical;
-        min-height: 52px;
-        line-height: 1.45;
+        min-height: 40px;
+        line-height: 1.35;
     }
 
     .cell-input:focus,
@@ -541,25 +544,26 @@
     .train-set-stack {
         display: flex;
         flex-direction: column;
-        min-height: 58px;
+        min-height: 48px;
     }
 
     .train-set-stack .cell-select {
         font-weight: 700;
-        min-height: 36px;
+        min-height: 28px;
     }
 
     .service-status-display {
         border-top: 1px dashed #64748b;
-        min-height: 34px;
-        font-size: 11px;
+        min-height: 20px;
+        font-size: 9px;
         font-weight: 700;
         transition: color 0.15s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 6px 8px;
+        padding: 3px 6px;
         text-align: center;
+        background: rgba(255,255,255,0.92);
     }
 
     .service-status-display.status-available {
@@ -586,135 +590,129 @@
         background: rgba(248, 113, 113, 0.28);
     }
 
-    .row-theme-green td { background: rgba(134, 239, 172, 0.45) !important; }
-    .row-theme-pink td { background: rgba(244, 114, 182, 0.18) !important; }
-    .row-theme-peach td { background: rgba(251, 191, 153, 0.35) !important; }
-    .row-theme-blue td { background: rgba(147, 197, 253, 0.35) !important; }
-    .row-theme-red td { background: rgba(248, 113, 113, 0.25) !important; }
-    .row-theme-yellow td { background: rgba(250, 204, 21, 0.45) !important; }
+    .row-theme-green td { background: rgba(163, 230, 153, 0.45) !important; }
+    .row-theme-pink td { background: rgba(244, 114, 182, 0.22) !important; }
+    .row-theme-peach td { background: rgba(253, 186, 116, 0.34) !important; }
+    .row-theme-blue td { background: rgba(147, 197, 253, 0.5) !important; }
+    .row-theme-red td { background: rgba(248, 113, 113, 0.42) !important; }
+    .row-theme-yellow td { background: rgba(250, 204, 21, 0.72) !important; }
 
     .paper-footer {
-        padding: 12px 16px 14px;
-        border-top: 2px solid #1e293b;
+        padding: 10px 12px 12px;
+        border-top: 1px solid #111827;
         display: grid;
-        grid-template-columns: 1fr 300px;
+        grid-template-columns: 1.35fr 0.65fr;
         gap: 12px;
-        background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+        background: #fff;
     }
 
     .paper-footer label {
         display: block;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 800;
-        color: #334155;
-        margin-bottom: 8px;
+        color: #111827;
+        margin-bottom: 6px;
         text-transform: uppercase;
         letter-spacing: 0.06em;
     }
 
     .paper-footer textarea {
         width: 100%;
-        min-height: 120px;
-        border: 1px solid #94a3b8;
-        border-radius: 10px;
-        padding: 12px 14px;
+        min-height: 132px;
+        border: 1px solid #111827;
+        border-radius: 0;
+        padding: 8px 10px;
         font-family: inherit;
-        font-size: 13px;
+        font-size: 11px;
         color: #0f172a;
         background:
             repeating-linear-gradient(
                 to bottom,
-                rgba(255,255,255,0.96),
-                rgba(255,255,255,0.96) 27px,
-                rgba(148,163,184,0.25) 27px,
-                rgba(148,163,184,0.25) 28px
+                rgba(255,255,255,0.98),
+                rgba(255,255,255,0.98) 23px,
+                rgba(148,163,184,0.22) 23px,
+                rgba(148,163,184,0.22) 24px
             );
-        line-height: 28px;
+        line-height: 24px;
     }
 
     .paper-footer textarea:focus {
         outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        border-color: #111827;
+        box-shadow: none;
     }
 
     .status-legend {
         display: grid;
-        gap: 10px;
+        gap: 8px;
         align-content: start;
     }
 
-    .status-legend .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid #cbd5e1;
-        background: rgba(255,255,255,0.96);
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .status-legend .swatch {
-        width: 16px;
-        height: 16px;
-        border-radius: 999px;
-        border: 1px solid rgba(15, 23, 42, 0.2);
-    }
-
-    .status-legend .swatch.available { background: #22c55e; }
-    .status-legend .swatch.warning { background: #facc15; }
-    .status-legend .swatch.out { background: #ef4444; }
-
+    .status-legend .legend-item,
     .status-legend .callout-box {
-        border: 1px solid #1f2937;
-        background: #dbeafe;
-        padding: 10px 12px;
-        border-radius: 10px;
-        font-size: 12px;
-        line-height: 1.55;
+        display: none;
     }
 
-    .status-legend .callout-box strong {
+    .handover-side-box {
+        border: 1px solid #111827;
+        background: #dbeafe;
+        padding: 8px 10px;
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .handover-side-box strong {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .paper-actions {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .service-book-toolbar .btn,
+    .paper-view-controls .btn {
+        border-radius: 0;
+        padding: 7px 10px;
+        font-size: 12px;
     }
 
     .footer-block-grid {
         display: grid;
-        grid-template-columns: 1.25fr 0.75fr;
+        grid-template-columns: 1fr;
         gap: 12px;
     }
 
     .footer-mini-table {
         width: 100%;
         border-collapse: collapse;
-        background: rgba(255,255,255,0.96);
+        background: #fff;
         table-layout: fixed;
     }
 
     .footer-mini-table th,
     .footer-mini-table td {
-        border: 1px solid #64748b;
-        padding: 6px 8px;
-        font-size: 12px;
+        border: 1px solid #111827;
+        padding: 4px 6px;
+        font-size: 10px;
     }
 
     .footer-mini-table tbody tr {
-        height: 34px;
+        height: 24px;
     }
 
     .footer-mini-table th {
-        background: #e2e8f0;
+        background: #e5e7eb;
         font-weight: 700;
         text-transform: uppercase;
+    }
+
+    .footer-handover-table th,
+    .footer-handover-table td {
+        background: #dbeafe;
     }
 
     .footer-mini-table input {
@@ -734,10 +732,10 @@
         border: 1px solid #ca8a04;
         background: #fef08a;
         color: #7c2d12;
-        padding: 10px 12px;
-        border-radius: 10px;
+        padding: 8px 10px;
+        border-radius: 0;
         font-weight: 700;
-        font-size: 12px;
+        font-size: 10px;
     }
 
     .page-helper-text {
@@ -746,7 +744,7 @@
     }
 
     .paper-helper-bar {
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
@@ -762,12 +760,12 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 6px 10px;
+        padding: 4px 8px;
         border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 10px;
-        background: rgba(245, 158, 11, 0.08);
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.04);
         color: #f8fafc;
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .scrollbar-hint strong {
@@ -842,29 +840,30 @@
     }
 
     .paper-signoff-box {
-        border: 1px solid #64748b;
-        border-radius: 10px;
-        background: rgba(255,255,255,0.96);
-        min-height: 74px;
+        border: 1px solid #111827;
+        border-radius: 0;
+        background: #fff;
+        min-height: 62px;
         display: grid;
         grid-template-rows: auto 1fr;
     }
 
     .paper-signoff-box strong {
-        padding: 8px 10px;
-        border-bottom: 1px solid #cbd5e1;
-        font-size: 11px;
+        padding: 6px 8px;
+        border-bottom: 1px solid #111827;
+        font-size: 10px;
         text-transform: uppercase;
-        color: #334155;
+        color: #111827;
         letter-spacing: 0.05em;
+        background: #f3f4f6;
     }
 
     .paper-signoff-box span {
         display: flex;
         align-items: end;
-        padding: 8px 10px;
+        padding: 6px 8px;
         color: #64748b;
-        font-size: 11px;
+        font-size: 10px;
     }
 
     @media print {
@@ -1287,25 +1286,6 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div>
-                                    <label>TWP / Handover List</label>
-                                    <table class="footer-mini-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Set</th>
-                                                <th>Target</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach(collect(old('handover_blocks', $handoverBlocks))->pad(count($handoverBlocks), ['set' => '', 'target' => ''])->all() as $index => $block)
-                                                <tr>
-                                                    <td><input type="text" name="handover_blocks[{{ $index }}][set]" value="{{ $block['set'] ?? '' }}"></td>
-                                                    <td><input type="text" name="handover_blocks[{{ $index }}][target]" value="{{ $block['target'] ?? '' }}"></td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
                             </div>
                             <div class="paper-signoff-grid">
                                 <div class="paper-signoff-box">
@@ -1324,25 +1304,26 @@
                         </div>
 
                         <div class="status-legend">
-                            <label>Legend</label>
-                            <div class="legend-item">
-                                <span class="swatch available"></span>
-                                พร้อมให้บริการ
-                            </div>
-                            <div class="legend-item">
-                                <span class="swatch warning"></span>
-                                ใกล้วาระซ่อม
-                            </div>
-                            <div class="legend-item">
-                                <span class="swatch out"></span>
-                                งดให้บริการ
-                            </div>
-                            <div class="legend-item" style="display: block; line-height: 1.5; font-weight: 500;">
-                                ใช้งานแบบสมุด: เลือกวันที่ด้านบน แล้วบันทึกข้อมูลของวันนั้น เมื่อเปิดวันถัดไป ระบบจะสร้างหน้ากระดาษใหม่ให้ต่อเนื่องทันที
-                            </div>
-                            <div class="callout-box">
-                                <strong>TWP / Handover</strong>
-                                ใช้กล่องนี้สำหรับจดขบวนที่ส่งต่อเข้าวันถัดไป, งานค้าง, call on และรายการพิเศษที่ต้องเฝ้าระวัง เพื่อให้รูปแบบการใช้งานใกล้กับสมุดจริงมากขึ้น
+                            <label>TWP / Handover List</label>
+                            <table class="footer-mini-table footer-handover-table">
+                                <thead>
+                                    <tr>
+                                        <th>Set</th>
+                                        <th>Target</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach(collect(old('handover_blocks', $handoverBlocks))->pad(count($handoverBlocks), ['set' => '', 'target' => ''])->all() as $index => $block)
+                                        <tr>
+                                            <td><input type="text" name="handover_blocks[{{ $index }}][set]" value="{{ $block['set'] ?? '' }}"></td>
+                                            <td><input type="text" name="handover_blocks[{{ $index }}][target]" value="{{ $block['target'] ?? '' }}"></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <div class="handover-side-box">
+                                <strong>Handover</strong>
+                                Use this panel for next-day handover, pending jobs, and watch items.
                             </div>
                         </div>
                     </div>
