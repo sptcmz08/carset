@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
     @php
-        $isDailyPlanLayout = request()->routeIs('daily-plan*');
         $allTrainSets = \App\Models\TrainSet::all();
         $alertCount = $allTrainSets->filter(fn ($trainSet) => in_array($trainSet->health_status, ['warning', 'out_of_service'], true))->count();
         $allSets = $allTrainSets;
@@ -94,7 +93,7 @@
             display: block; margin-top: 2px;
         }
 
-        body.layout-daily-plan .sidebar {
+        body.layout-top-nav .sidebar {
             display: none;
         }
 
@@ -137,7 +136,7 @@
             min-height: 100vh;
         }
 
-        body.layout-daily-plan .main-content {
+        body.layout-top-nav .main-content {
             margin-left: 0;
         }
 
@@ -166,7 +165,7 @@
             display: none;
         }
 
-        body.layout-daily-plan .topbar {
+        body.layout-top-nav .topbar {
             display: grid;
             grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
             gap: 16px;
@@ -174,7 +173,7 @@
             padding: 14px 24px;
         }
 
-        body.layout-daily-plan .topbar-center-nav {
+        body.layout-top-nav .topbar-center-nav {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -182,7 +181,7 @@
             flex-wrap: wrap;
         }
 
-        body.layout-daily-plan .topbar .datetime {
+        body.layout-top-nav .topbar .datetime {
             justify-self: end;
         }
 
@@ -477,18 +476,18 @@
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
-            body.layout-daily-plan .sidebar { display: flex; }
+            body.layout-top-nav .sidebar { display: flex; }
             .mobile-toggle {
                 display: flex; align-items: center; justify-content: center;
                 width: 40px; height: 40px; border-radius: 10px;
                 background: rgba(255,255,255,0.06); border: none;
                 color: var(--text); font-size: 18px; cursor: pointer;
             }
-            body.layout-daily-plan .topbar {
+            body.layout-top-nav .topbar {
                 display: flex;
                 padding: 16px;
             }
-            body.layout-daily-plan .topbar-center-nav {
+            body.layout-top-nav .topbar-center-nav {
                 display: none;
             }
             .stat-grid { grid-template-columns: 1fr 1fr; }
@@ -505,7 +504,7 @@
         .empty-state p { font-size: 14px; }
     </style>
 </head>
-<body x-data="{ sidebarOpen: false }" class="{{ $isDailyPlanLayout ? 'layout-daily-plan' : '' }}">
+<body x-data="{ sidebarOpen: false }" class="layout-top-nav">
 
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'open': sidebarOpen }" @click.away="sidebarOpen = false">
@@ -555,29 +554,27 @@
                 </button>
                 <h2>@yield('title', 'แดชบอร์ด')</h2>
             </div>
-            @if($isDailyPlanLayout)
-                <nav class="topbar-center-nav" aria-label="Main navigation">
-                    <a href="{{ route('dashboard') }}" class="topbar-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                        <i class="fas fa-chart-pie"></i>
-                        <span>แดชบอร์ด</span>
-                    </a>
-                    <a href="{{ route('daily-plan') }}" class="topbar-nav-link {{ request()->routeIs('daily-plan') ? 'active' : '' }}">
-                        <i class="fas fa-calendar-day"></i>
-                        <span>แผนงานรายวัน</span>
-                    </a>
-                    <a href="{{ route('fleet') }}" class="topbar-nav-link {{ request()->routeIs('fleet') ? 'active' : '' }}">
-                        <i class="fas fa-train-subway"></i>
-                        <span>ฐานข้อมูลขบวน</span>
-                        @if($alertCount > 0)
-                            <span class="badge">{{ $alertCount }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('reports') }}" class="topbar-nav-link {{ request()->routeIs('reports') ? 'active' : '' }}">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>รายงาน</span>
-                    </a>
-                </nav>
-            @endif
+            <nav class="topbar-center-nav" aria-label="Main navigation">
+                <a href="{{ route('dashboard') }}" class="topbar-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>แดชบอร์ด</span>
+                </a>
+                <a href="{{ route('daily-plan') }}" class="topbar-nav-link {{ request()->routeIs('daily-plan') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>แผนงานรายวัน</span>
+                </a>
+                <a href="{{ route('fleet') }}" class="topbar-nav-link {{ request()->routeIs('fleet') ? 'active' : '' }}">
+                    <i class="fas fa-train-subway"></i>
+                    <span>ฐานข้อมูลขบวน</span>
+                    @if($alertCount > 0)
+                        <span class="badge">{{ $alertCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('reports') }}" class="topbar-nav-link {{ request()->routeIs('reports') ? 'active' : '' }}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>รายงาน</span>
+                </a>
+            </nav>
             <div class="datetime">
                 <i class="far fa-clock"></i>
                 <span>{{ \Carbon\Carbon::now()->locale('th')->translatedFormat('l d F Y') }}</span>

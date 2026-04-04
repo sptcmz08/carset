@@ -1008,12 +1008,12 @@
     </div>
 
     <div class="paper-helper-bar">
-        <div class="page-helper-text">เลือกวันเพื่อเปิดหน้ากระดาษของวันนั้น, ใช้ Master Data เพื่อกำหนดค่าถาวรของ T01-T25 แล้วกด “เติมค่ามาตรฐาน” เมื่อต้องการกรอกฟอร์มเร็วขึ้น</div>
+        <div class="page-helper-text">เลือกวันเพื่อเปิดหน้ากระดาษของวันนั้น ระบบจะใช้ template 18 ตารางตามรูปแบบเดินรถประจำวัน และใช้ Master Data ของขบวนเพื่อเติมค่ามาตรฐานให้อัตโนมัติ</div>
         <div class="page-helper-text">ค่าที่กรอกไว้แล้วจะไม่ถูกทับเมื่อใช้การเติมค่ามาตรฐาน และสามารถคัดลอกทั้งหน้าจากวันก่อนหน้าได้</div>
     </div>
 
     <div class="scrollbar-hint">
-        <span><strong>การแสดงผล:</strong> ระบบจะพยายามย่อทั้งหน้าเฉพาะตอนที่ยังอ่านได้ชัด ถ้าย่อมากเกินไปจะคงขนาดจริงและเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของตารางแทน</span>
+        <span><strong>การแสดงผล:</strong> หน้า Daily Plan บน desktop จะย่อคงที่ประมาณ 80% เพื่อให้เห็นแบบฟอร์มได้ครบขึ้น และถ้าจอกว้างไม่พอสามารถเลื่อนซ้าย-ขวาผ่านแถบสีส้มด้านล่างของจอได้</span>
         <span>Horizontal Scroll</span>
     </div>
 
@@ -1379,7 +1379,8 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const desktopFitQuery = window.matchMedia('(min-width: 1025px)');
-    const minimumFitScale = 0.92;
+    const minimumFitScale = 0.8;
+    const preferredDesktopScale = 0.8;
     const defaultTableZoom = 1;
     const minimumTableZoom = 0.8;
     const maximumTableZoom = 1.3;
@@ -1490,10 +1491,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            const appliedScale = Math.min(scale, preferredDesktopScale);
             fitStage.classList.add('paper-fit-active');
-            fitCanvas.style.width = `${Math.ceil(naturalWidth * scale)}px`;
-            fitCanvas.style.height = `${Math.ceil(naturalHeight * scale)}px`;
-            paperCard.style.transform = `scale(${scale})`;
+            fitCanvas.style.width = `${Math.ceil(naturalWidth * appliedScale)}px`;
+            fitCanvas.style.height = `${Math.ceil(naturalHeight * appliedScale)}px`;
+            paperCard.style.transform = `scale(${appliedScale})`;
             syncFixedScrollState();
         });
 

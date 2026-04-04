@@ -13,6 +13,27 @@ use Illuminate\Support\Facades\DB;
 
 class DailyPlanController extends Controller
 {
+    private const DAILY_PLAN_TEMPLATE = [
+        ['code' => 'T02', 'row_theme' => null],
+        ['code' => 'T10', 'row_theme' => null],
+        ['code' => 'T04', 'row_theme' => null],
+        ['code' => 'T12', 'row_theme' => null],
+        ['code' => 'T18', 'row_theme' => null],
+        ['code' => 'T06', 'row_theme' => 'pink'],
+        ['code' => 'T08', 'row_theme' => 'green'],
+        ['code' => 'T16', 'row_theme' => null],
+        ['code' => 'T15', 'row_theme' => 'peach'],
+        ['code' => 'T21', 'row_theme' => null],
+        ['code' => 'T14', 'row_theme' => 'blue'],
+        ['code' => 'T07', 'row_theme' => 'blue'],
+        ['code' => 'T05', 'row_theme' => 'red'],
+        ['code' => 'T09', 'row_theme' => 'red'],
+        ['code' => 'T13', 'row_theme' => 'yellow'],
+        ['code' => 'T11', 'row_theme' => 'yellow'],
+        ['code' => 'T17', 'row_theme' => 'yellow'],
+        ['code' => 'T20', 'row_theme' => 'yellow'],
+    ];
+
     public function index(Request $request)
     {
         return view('daily-plan', $this->buildDailyPlanViewData($request));
@@ -167,6 +188,11 @@ class DailyPlanController extends Controller
             ->with('entries.trainSet')
             ->first();
 
+        if ($previousDay) {
+            $this->ensureEntries($previousDay, $this->ensureTrainSets());
+            $previousDay->load('entries.trainSet');
+        }
+
         if (! $previousDay) {
             return redirect()->route('daily-plan', ['date' => $date->toDateString()])
                 ->with('success', 'ไม่พบข้อมูลของวันก่อนหน้าให้คัดลอก');
@@ -307,33 +333,50 @@ class DailyPlanController extends Controller
 
     private function ensureEntries(ServicePlanDay $day, $trainSets): void
     {
-        foreach ($trainSets as $index => $trainSet) {
-            ServicePlanEntry::firstOrCreate(
-                [
+        $template = $this->servicePlanTemplate($trainSets);
+
+        if ($day->entries()->count() !== count($template)) {
+            $day->entries()->delete();
+
+            foreach ($template as $index => $slot) {
+                $trainSet = $slot['trainSet'];
+
+                ServicePlanEntry::create([
                     'service_plan_day_id' => $day->id,
                     'display_order' => $index + 1,
-                ],
-                [
-                    'train_set_id' => $trainSet->id,
-                    'service_status' => $trainSet->health_status,
+                    'train_set_id' => $trainSet?->id,
+                    'service_status' => $trainSet?->health_status ?? 'available',
                     'status_mode' => 'auto',
-                    'row_theme' => $trainSet->default_row_theme,
-                    'berth_no' => $trainSet->default_berth_no,
-                    'consist_type' => $trainSet->default_consist_type,
-                    'outbound_run_no' => $trainSet->default_outbound_run_no,
-                    'first_contact_plan' => $trainSet->default_first_contact_plan,
-                    'departure_plan_time' => $trainSet->default_departure_plan_time,
-                    'ktw_platform' => $trainSet->default_ktw_platform,
-                    'ktw_next_depart_time' => $trainSet->default_ktw_next_depart_time,
-                    'inbound_run_no' => $trainSet->default_inbound_run_no,
-                    'end_station' => $trainSet->default_end_station,
-                    'end_time' => $trainSet->default_end_time,
-                    'end_no' => $trainSet->default_end_no,
-                    'end_depot' => $trainSet->default_end_depot,
-                    'special_instructions' => $trainSet->default_special_instructions,
-                ]
-            );
+                    'row_theme' => $slot['row_theme'] ?? $trainSet?->default_row_theme,
+                    'berth_no' => $trainSet?->default_berth_no,
+                    'consist_type' => $trainSet?->default_consist_type,
+                    'outbound_run_no' => $trainSet?->default_outbound_run_no,
+                    'first_contact_plan' => $trainSet?->default_first_contact_plan,
+                    'departure_plan_time' => $trainSet?->default_departure_plan_time,
+                    'ktw_platform' => $trainSet?->default_ktw_platform,
+                    'ktw_next_depart_time' => $trainSet?->default_ktw_next_depart_time,
+                    'inbound_run_no' => $trainSet?->default_inbound_run_no,
+                    'end_station' => $trainSet?->default_end_station,
+                    'end_time' => $trainSet?->default_end_time,
+                    'end_no' => $trainSet?->default_end_no,
+                    'end_depot' => $trainSet?->default_end_depot,
+                    'special_instructions' => $trainSet?->default_special_instructions,
+                ]);
+            }
+
+            return;
         }
+    }
+
+    private function servicePlanTemplate(Collection $trainSets): array
+    {
+        $trainSetMap = $trainSets->keyBy('code');
+
+        return array_values(array_map(function (array $slot) use ($trainSetMap) {
+            $slot['trainSet'] = $trainSetMap->get($slot['code']);
+
+            return $slot;
+        }, self::DAILY_PLAN_TEMPLATE));
     }
 
     private function buildMasterOptions(Collection $trainSets): array
