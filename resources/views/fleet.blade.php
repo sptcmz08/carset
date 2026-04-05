@@ -55,7 +55,7 @@
                             </div>
                             <div>
                                 <div style="font-size: 18px; font-weight: 700;">{{ $trainSet->code }}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">{{ $trainSet->consist_label }} • {{ $trainSet->default_berth_no ?: '-' }}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">{{ $trainSet->consist_label }}</div>
                             </div>
                         </div>
                         <span class="badge badge-{{ $trainSet->health_badge_class }}">{{ $trainSet->health_icon }} {{ $trainSet->health_label }}</span>
@@ -132,10 +132,6 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">Berth No.</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.default_berth_no || '-'"></div>
-                    </div>
                     <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
                         <div style="font-size: 11px; color: var(--text-muted);">Type</div>
                         <div style="font-size: 14px; font-weight: 600;" x-text="(detail.train_set?.default_consist_type || '-') + ' Cars'"></div>
