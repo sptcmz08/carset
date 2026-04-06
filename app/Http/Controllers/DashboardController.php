@@ -34,55 +34,42 @@ class DashboardController extends Controller
                 continue;
             }
 
-            if ($trainSet->mileage_remaining < 0) {
-                $alerts[] = [
-                    'type' => 'mileage',
-                    'level' => 'danger',
-                    'trainSet' => $trainSet,
-                    'message' => 'เกินกำหนดเช็คระยะแล้ว ' . abs($trainSet->mileage_remaining) . ' km',
-                ];
-            } elseif ($trainSet->mileage_remaining <= 1000) {
+            if ($trainSet->requires_mileage_inspection) {
                 $alerts[] = [
                     'type' => 'mileage',
                     'level' => 'warning',
                     'trainSet' => $trainSet,
-                    'message' => 'เหลืออีก ' . $trainSet->mileage_remaining . ' km จะถึงกำหนดเช็คระยะ',
+                    'message' => 'ถึงระยะไมล์ตรวจเช็กทุก 5,000 km แล้ว',
                 ];
             }
 
-            if ($trainSet->days_until_maintenance !== null) {
-                if ($trainSet->days_until_maintenance < 0) {
-                    $alerts[] = [
-                        'type' => 'schedule',
-                        'level' => 'danger',
-                        'trainSet' => $trainSet,
-                        'message' => 'เลยกำหนดซ่อมบำรุงมาแล้ว ' . abs($trainSet->days_until_maintenance) . ' วัน',
-                    ];
-                } elseif ($trainSet->days_until_maintenance <= 7) {
-                    $alerts[] = [
-                        'type' => 'schedule',
-                        'level' => 'warning',
-                        'trainSet' => $trainSet,
-                        'message' => 'อีก ' . $trainSet->days_until_maintenance . ' วัน ถึงกำหนดซ่อมบำรุง',
-                    ];
+            if ($trainSet->major_fault_count >= 1 || $trainSet->overhaul_required || $trainSet->minor_fault_count > 3) {
+                $messages = [];
+
+                if ($trainSet->overhaul_required) {
+                    $messages[] = 'Overhaul';
                 }
-            }
 
-            if ($trainSet->maintenance_status === 'minor_repair') {
-                $alerts[] = [
-                    'type' => 'repair',
-                    'level' => 'warning',
-                    'trainSet' => $trainSet,
-                    'message' => 'Minor: ' . ($trainSet->repair_note ?: 'มีรายการต้องตรวจสอบก่อนใช้งาน'),
-                ];
-            }
+                if ($trainSet->major_fault_count >= 1) {
+                    $messages[] = 'Fault Major ' . $trainSet->major_fault_count . ' รายการ';
+                }
 
-            if ($trainSet->maintenance_status === 'major_repair') {
+                if ($trainSet->minor_fault_count > 3) {
+                    $messages[] = 'Fault Minor เกิน 3 รายการ';
+                }
+
                 $alerts[] = [
                     'type' => 'repair',
                     'level' => 'danger',
                     'trainSet' => $trainSet,
-                    'message' => 'Major: ' . ($trainSet->repair_note ?: 'งดให้บริการจนกว่าจะซ่อมเสร็จ'),
+                    'message' => implode(' / ', $messages),
+                ];
+            } elseif ($trainSet->minor_fault_count > 0) {
+                $alerts[] = [
+                    'type' => 'repair',
+                    'level' => 'warning',
+                    'trainSet' => $trainSet,
+                    'message' => 'Fault Minor ' . $trainSet->minor_fault_count . ' รายการ',
                 ];
             }
         }

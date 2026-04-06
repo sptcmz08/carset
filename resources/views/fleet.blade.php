@@ -31,8 +31,7 @@
             <a href="{{ route('fleet', ['filter' => 'all']) }}" class="filter-tab {{ $filter === 'all' ? 'active' : '' }}">ทั้งหมด</a>
             <a href="{{ route('fleet', ['filter' => 'active']) }}" class="filter-tab {{ $filter === 'active' ? 'active' : '' }}">🟢 พร้อมใช้</a>
             <a href="{{ route('fleet', ['filter' => 'warning']) }}" class="filter-tab {{ $filter === 'warning' ? 'active' : '' }}">🟡 ใกล้ครบรอบ</a>
-            <a href="{{ route('fleet', ['filter' => 'minor_repair']) }}" class="filter-tab {{ $filter === 'minor_repair' ? 'active' : '' }}">🔧 Minor</a>
-            <a href="{{ route('fleet', ['filter' => 'major_repair']) }}" class="filter-tab {{ $filter === 'major_repair' ? 'active' : '' }}">🛑 Major</a>
+            <a href="{{ route('fleet', ['filter' => 'out_of_service']) }}" class="filter-tab {{ $filter === 'out_of_service' ? 'active' : '' }}">🛑 งดให้บริการ</a>
             <a href="{{ route('fleet', ['filter' => 'retired']) }}" class="filter-tab {{ $filter === 'retired' ? 'active' : '' }}">⚫ ปลดระวาง</a>
         </div>
     </div>
@@ -95,6 +94,14 @@
                         <span class="badge badge-{{ $maintenanceBadgeClass }}">{{ $trainSet->maintenance_status_label }}</span>
                     </div>
 
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                        <span class="badge badge-blue">Fault Minor {{ $trainSet->minor_fault_count ?? 0 }}</span>
+                        <span class="badge badge-blue">Fault Major {{ $trainSet->major_fault_count ?? 0 }}</span>
+                        @if($trainSet->overhaul_required)
+                            <span class="badge badge-red">Overhaul</span>
+                        @endif
+                    </div>
+
                     @if($trainSet->repair_note)
                     <div style="margin-top: 8px; padding: 8px 12px; background: var(--red-bg); border-radius: 8px; font-size: 12px; color: var(--red);">
                         <i class="fas fa-circle-exclamation"></i> {{ $trainSet->repair_note }}
@@ -129,6 +136,13 @@
                             <span>ขบวนนี้ต้องงดให้บริการจนกว่าจะเคลียร์ condition monitoring หรือซ่อมบำรุงเสร็จ</span>
                         </template>
                     </div>
+                    <template x-if="detail.health_reasons && detail.health_reasons.length">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+                            <template x-for="reason in detail.health_reasons" :key="reason">
+                                <span class="badge badge-blue" x-text="reason"></span>
+                            </template>
+                        </div>
+                    </template>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
@@ -152,11 +166,27 @@
                         <div style="font-size: 11px; color: var(--text-muted);">กำหนดซ่อมถัดไป</div>
                         <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.next_maintenance_date || '-'"></div>
                     </div>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">Fault Minor</div>
+                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.minor_fault_count ?? 0"></div>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">Fault Major</div>
+                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.major_fault_count ?? 0"></div>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">Overhaul</div>
+                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.overhaul_required ? 'Yes' : 'No'"></div>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">สถานะงานซ่อม</div>
+                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.maintenance_status_label || '-'"></div>
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
                     <button class="btn btn-secondary btn-sm" @click="showMileageForm = !showMileageForm"><i class="fas fa-tachometer-alt"></i> อัปเดตไมล์</button>
-                    <button class="btn btn-secondary btn-sm" @click="showStatusForm = !showStatusForm"><i class="fas fa-screwdriver-wrench"></i> เปลี่ยนสถานะ</button>
+                    <button class="btn btn-secondary btn-sm" @click="showStatusForm = !showStatusForm"><i class="fas fa-screwdriver-wrench"></i> อัปเดต Fault / Condition</button>
                     <button class="btn btn-secondary btn-sm" @click="showScheduleForm = !showScheduleForm"><i class="fas fa-calendar-days"></i> อัปเดตกำหนดซ่อม</button>
                 </div>
 
@@ -170,17 +200,36 @@
                 </div>
 
                 <div x-show="showStatusForm" style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-screwdriver-wrench" style="color: var(--amber);"></i> บันทึกอาการ / เปลี่ยนสถานะ</h4>
-                    <div class="form-group">
-                        <select x-model="newStatus" class="form-select">
-                            <option value="active">🟢 พร้อมใช้งาน</option>
-                            <option value="minor_repair">🟡 Minor / ยังใช้งานได้</option>
-                            <option value="major_repair">🔴 Major / หยุดวิ่ง</option>
-                            <option value="retired">⚫ ปลดระวาง</option>
-                        </select>
+                    <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-screwdriver-wrench" style="color: var(--amber);"></i> บันทึก Fault และเงื่อนไขจำลอง</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Fault Minor</label>
+                            <input type="number" min="0" x-model="minorFaultCount" class="form-input" placeholder="0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Fault Major</label>
+                            <input type="number" min="0" x-model="majorFaultCount" class="form-input" placeholder="0">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Overhaul</label>
+                            <select x-model="overhaulRequired" class="form-select">
+                                <option :value="false">No</option>
+                                <option :value="true">Yes</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Operational State</label>
+                            <select x-model="newStatus" class="form-select">
+                                <option value="active">พร้อมใช้งาน</option>
+                                <option value="retired">ปลดระวาง</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <textarea x-model="repairNote" class="form-input" rows="2" placeholder="บันทึกอาการ..."></textarea>
+                        <textarea x-model="repairNote" class="form-input" rows="2" placeholder="บันทึกอาการ / หมายเหตุเพิ่มเติม..."></textarea>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                        ระบบจะคำนวณสีสถานะอัตโนมัติจากเงื่อนไขตัวอย่างที่กรอกไว้ โดยไม่ต้องเลือกสีเอง
                     </div>
                     <button class="btn btn-primary btn-sm" @click="updateStatus()">บันทึก</button>
                     <div x-show="statusResult" style="margin-top: 8px; font-size: 13px;">
@@ -258,6 +307,9 @@ function fleetApp() {
         detail: {},
         newMileage: '',
         newStatus: 'active',
+        minorFaultCount: 0,
+        majorFaultCount: 0,
+        overhaulRequired: false,
         repairNote: '',
         nextServiceMileage: '',
         lastMaintenanceDate: '',
@@ -271,6 +323,9 @@ function fleetApp() {
             this.detail = await res.json();
             this.newMileage = this.detail.train_set?.current_mileage || '';
             this.newStatus = this.detail.train_set?.maintenance_status || 'active';
+            this.minorFaultCount = this.detail.train_set?.minor_fault_count || 0;
+            this.majorFaultCount = this.detail.train_set?.major_fault_count || 0;
+            this.overhaulRequired = Boolean(this.detail.train_set?.overhaul_required);
             this.repairNote = this.detail.train_set?.repair_note || '';
             this.nextServiceMileage = this.detail.train_set?.next_service_mileage || '';
             this.lastMaintenanceDate = this.detail.train_set?.last_maintenance_date || '';
@@ -323,7 +378,13 @@ function fleetApp() {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
-                    body: JSON.stringify({ status: this.newStatus, repair_note: this.repairNote }),
+                    body: JSON.stringify({
+                        status: this.newStatus,
+                        minor_fault_count: parseInt(this.minorFaultCount, 10) || 0,
+                        major_fault_count: parseInt(this.majorFaultCount, 10) || 0,
+                        overhaul_required: this.overhaulRequired ? 1 : 0,
+                        repair_note: this.repairNote,
+                    }),
                 });
 
                 if (!res.ok) {

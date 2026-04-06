@@ -30,12 +30,16 @@ class TrainSet extends Model
         'last_maintenance_date',
         'next_maintenance_date',
         'maintenance_status',
+        'minor_fault_count',
+        'major_fault_count',
+        'overhaul_required',
         'repair_note',
     ];
 
     protected $casts = [
         'last_maintenance_date' => 'date',
         'next_maintenance_date' => 'date',
+        'overhaul_required' => 'boolean',
     ];
 
     public function servicePlanEntries(): HasMany
@@ -67,17 +71,34 @@ class TrainSet extends Model
         return Carbon::today()->diffInDays($this->next_maintenance_date, false);
     }
 
+    public function getRequiresMileageInspectionAttribute(): bool
+    {
+        $currentMileage = (int) $this->current_mileage;
+
+        return $currentMileage > 0 && $currentMileage % 5000 === 0;
+    }
+
+    public function getHasMinorFaultWarningAttribute(): bool
+    {
+        $minorFaultCount = (int) $this->minor_fault_count;
+
+        return $minorFaultCount > 0 && $minorFaultCount <= 3;
+    }
+
+    public function getHasCriticalFaultConditionAttribute(): bool
+    {
+        return (bool) $this->overhaul_required
+            || (int) $this->major_fault_count >= 1
+            || (int) $this->minor_fault_count > 3;
+    }
+
     public function getHealthStatusAttribute(): string
     {
         if (in_array($this->maintenance_status, ['major_repair', 'retired'], true)) {
             return 'out_of_service';
         }
 
-        if ($this->mileage_remaining < 0) {
-            return 'out_of_service';
-        }
-
-        if (($this->days_until_maintenance ?? 1) < 0) {
+        if ($this->has_critical_fault_condition) {
             return 'out_of_service';
         }
 
@@ -85,15 +106,48 @@ class TrainSet extends Model
             return 'warning';
         }
 
-        if ($this->mileage_remaining <= 1000) {
-            return 'warning';
-        }
-
-        if (($this->days_until_maintenance ?? 999) <= 7) {
+        if ($this->requires_mileage_inspection || $this->has_minor_fault_warning) {
             return 'warning';
         }
 
         return 'available';
+    }
+
+    public function getHealthReasonsAttribute(): array
+    {
+        $reasons = [];
+
+        if ($this->maintenance_status === 'retired') {
+            $reasons[] = 'ปลดระวาง';
+        }
+
+        if ($this->maintenance_status === 'major_repair') {
+            $reasons[] = 'อยู่ระหว่างซ่อมใหญ่';
+        }
+
+        if ($this->overhaul_required) {
+            $reasons[] = 'มีงาน Overhaul';
+        }
+
+        if ((int) $this->major_fault_count >= 1) {
+            $reasons[] = 'Fault Major ' . (int) $this->major_fault_count . ' รายการ';
+        }
+
+        if ((int) $this->minor_fault_count > 3) {
+            $reasons[] = 'Fault Minor เกิน 3 รายการ';
+        } elseif ($this->has_minor_fault_warning) {
+            $reasons[] = 'Fault Minor ' . (int) $this->minor_fault_count . ' รายการ';
+        }
+
+        if ($this->maintenance_status === 'minor_repair') {
+            $reasons[] = 'มีรายการซ่อมเล็กน้อย';
+        }
+
+        if ($this->requires_mileage_inspection) {
+            $reasons[] = 'ถึงระยะไมล์ทุก 5,000 km';
+        }
+
+        return $reasons;
     }
 
     public function getHealthLabelAttribute(): string
