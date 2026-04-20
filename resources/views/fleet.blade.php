@@ -225,7 +225,7 @@
                                                         <template x-for="log in (faultState[{{ $trainSet->id }}]?.logs || [])" :key="log.id">
                                                             <div class="fault-history-item">
                                                                 <div class="fault-history-desc" x-text="log.description"></div>
-                                                                <div class="fault-history-date" x-text="log.service_date"></div>
+                                                                <div class="fault-history-date" x-text="formatDateTime(log.created_at || log.service_date)"></div>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -241,43 +241,51 @@
                                                             <div class="form-label">Fault Minor</div>
                                                             <input
                                                                 type="number" min="0"
-                                                                class="form-input"
+                                                                class="form-input minor-input"
                                                                 style="padding: 8px 10px; text-align: center; font-weight: 700;"
                                                                 value="{{ $trainSet->minor_fault_count ?? 0 }}"
-                                                                @input="queueFault({{ $trainSet->id }}, 'minor_fault_count', $event.target.value)"
                                                             >
                                                         </div>
                                                         <div>
                                                             <div class="form-label">Fault Major</div>
                                                             <input
                                                                 type="number" min="0"
-                                                                class="form-input"
+                                                                class="form-input major-input"
                                                                 style="padding: 8px 10px; text-align: center; font-weight: 700;"
                                                                 value="{{ $trainSet->major_fault_count ?? 0 }}"
-                                                                @input="queueFault({{ $trainSet->id }}, 'major_fault_count', $event.target.value)"
                                                             >
                                                         </div>
                                                         <div>
                                                             <div class="form-label">Overhaul</div>
                                                             <input
                                                                 type="number" min="0"
-                                                                class="form-input"
+                                                                class="form-input overhaul-input"
                                                                 style="padding: 8px 10px; text-align: center; font-weight: 700;"
                                                                 value="{{ $trainSet->overhaul_required ? 1 : 0 }}"
-                                                                @input="queueFault({{ $trainSet->id }}, 'overhaul_required', $event.target.value)"
                                                             >
                                                         </div>
                                                         <div style="grid-column: span 3;">
                                                             <div class="form-label">รายละเอียด / อาการ / หมายเหตุเพิ่มเติม</div>
                                                             <textarea
-                                                                class="form-input"
+                                                                class="form-input repair-note-input"
                                                                 rows="2"
                                                                 style="padding: 8px 10px; resize: vertical;"
-                                                                @input="queueFault({{ $trainSet->id }}, 'repair_note', $event.target.value)"
                                                             >{{ $trainSet->repair_note }}</textarea>
                                                         </div>
+                                                        <div style="grid-column: span 3; text-align: right; margin-top: 8px;">
+                                                            <span class="fault-save-msg" x-text="faultState[{{ $trainSet->id }}]?.saveMessage || ''" style="margin-right: 12px; font-weight: 600;"></span>
+                                                            <button 
+                                                                type="button" 
+                                                                class="btn btn-primary" 
+                                                                style="padding: 8px 16px; border-radius: 8px; border: none; background: #0ea5e9; color: white; font-weight: 700; cursor: pointer; transition: background 0.15s;"
+                                                                onmouseover="this.style.background='#0284c7'"
+                                                                onmouseout="this.style.background='#0ea5e9'"
+                                                                @click="updateFault({{ $trainSet->id }}, $event)"
+                                                            >
+                                                                <i class="fas fa-save"></i> Save/บันทึก
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div class="fault-save-msg" x-text="faultState[{{ $trainSet->id }}]?.saveMessage || ''"></div>
                                                 </div>
 
                                             </div>{{-- /.fault-panel-body --}}
@@ -372,51 +380,19 @@
     /* ── Mileage top-3 highlight (premium) ─── */
     td.mileage-top { background: rgba(255,255,255,0.03); }
 
-    /* Rank 1 — Amber gold gradient */
-    td.mileage-top-1 {
-        background: linear-gradient(135deg,
-            rgba(245,158,11,0.22) 0%,
-            rgba(253,224,71,0.14) 100%);
-        border-left: 3px solid rgba(245,158,11,0.7) !important;
+    /* Rank 1-3 — Yellow Background + Red Text */
+    td.mileage-top-1, td.mileage-top-2, td.mileage-top-3 {
+        background: rgba(250, 204, 21, 0.15) !important;
+        border-left: 3px solid #facc15 !important;
     }
-    td.mileage-top-1 .km-input {
-        background: rgba(245,158,11,0.12) !important;
-        border-color: rgba(245,158,11,0.45) !important;
-        color: #fbbf24 !important;
-        font-weight: 900 !important;
-        text-shadow: 0 0 12px rgba(245,158,11,0.5);
-    }
-    td.mileage-top-1 .km-input:focus {
-        border-color: var(--amber) !important;
-        box-shadow: 0 0 0 3px rgba(245,158,11,0.2) !important;
-    }
-
-    /* Rank 2 — Orange */
-    td.mileage-top-2 {
-        background: linear-gradient(135deg,
-            rgba(249,115,22,0.2) 0%,
-            rgba(239,68,68,0.12) 100%);
-        border-left: 3px solid rgba(249,115,22,0.7) !important;
-    }
-    td.mileage-top-2 .km-input {
-        background: rgba(249,115,22,0.12) !important;
-        border-color: rgba(249,115,22,0.45) !important;
-        color: #fb923c !important;
-        font-weight: 900 !important;
-    }
-
-    /* Rank 3 — Red */
-    td.mileage-top-3 {
-        background: linear-gradient(135deg,
-            rgba(239,68,68,0.18) 0%,
-            rgba(220,38,38,0.1) 100%);
-        border-left: 3px solid rgba(239,68,68,0.6) !important;
-    }
+    td.mileage-top-1 .km-input, 
+    td.mileage-top-2 .km-input, 
     td.mileage-top-3 .km-input {
-        background: rgba(239,68,68,0.12) !important;
-        border-color: rgba(239,68,68,0.45) !important;
-        color: #f87171 !important;
+        background: rgba(250, 204, 21, 0.08) !important;
+        border-color: rgba(250, 204, 21, 0.35) !important;
+        color: #ef4444 !important; /* Red text */
         font-weight: 900 !important;
+        text-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
     }
 
     /* rank badge overlay (top-right corner of cell) */
@@ -633,15 +609,22 @@ function fleetTableApp() {
             return !!this.openFaultIds[id];
         },
 
-        async toggleFault(id) {
-            if (this.openFaultIds[id]) {
+        formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute:'2-digit' });
+        },
+
+        async toggleFault(id, forceReload = false) {
+            if (this.openFaultIds[id] && !forceReload) {
                 this.openFaultIds[id] = false;
                 return;
             }
 
             this.openFaultIds[id] = true;
 
-            if (this.faultState[id]?.loaded) return;
+            if (this.faultState[id]?.loaded && !forceReload) return;
 
             this.faultState[id] = { loading: true, loaded: false, logs: [], saveMessage: '' };
             try {
@@ -716,33 +699,31 @@ function fleetTableApp() {
             }
         },
 
-        queueFault(id, field, value) {
-            this.faultBuffers[id] = this.faultBuffers[id] || {};
-            this.faultBuffers[id][field] = value;
+        // Replaced by direct extraction in updateFault
+        queueFault(id, field, value) {},
 
-            clearTimeout(this.faultTimers[id]);
-            this.faultTimers[id] = setTimeout(() => this.updateFault(id), 400);
-        },
-
-        async updateFault(id) {
+        async updateFault(id, event) {
             const token = document.querySelector('meta[name="csrf-token"]').content;
-            const payload = this.faultBuffers[id] || {};
+            
+            const panel = event.target.closest('.fault-edit-grid');
+            if(!panel) return;
+
+            const minor = panel.querySelector('.minor-input').value;
+            const major = panel.querySelector('.major-input').value;
+            const overhaul = panel.querySelector('.overhaul-input').value;
+            const note = panel.querySelector('.repair-note-input').value;
+
             const normalized = {
-                minor_fault_count: payload.minor_fault_count !== undefined
-                    ? (parseInt(payload.minor_fault_count, 10) || 0)
-                    : undefined,
-                major_fault_count: payload.major_fault_count !== undefined
-                    ? (parseInt(payload.major_fault_count, 10) || 0)
-                    : undefined,
-                overhaul_required: payload.overhaul_required !== undefined
-                    ? (parseInt(payload.overhaul_required, 10) > 0)
-                    : undefined,
-                repair_note: payload.repair_note !== undefined
-                    ? payload.repair_note
-                    : undefined,
+                minor_fault_count: parseInt(minor, 10) || 0,
+                major_fault_count: parseInt(major, 10) || 0,
+                overhaul_required: parseInt(overhaul, 10) > 0,
+                repair_note: note,
             };
 
-            Object.keys(normalized).forEach((key) => normalized[key] === undefined && delete normalized[key]);
+            if (!this.faultState[id]) {
+                this.faultState[id] = { loading: false, loaded: false, logs: [], saveMessage: '' };
+            }
+            this.faultState[id].saveMessage = 'กำลังบันทึก...';
 
             try {
                 const res = await fetch('/fleet/' + id + '/fault', {
@@ -766,13 +747,13 @@ function fleetTableApp() {
                     badge.classList.add('badge-' + mapped.statusClass);
                 }
 
-                if (!this.faultState[id]) {
-                    this.faultState[id] = { loading: false, loaded: false, logs: [], saveMessage: '' };
-                }
-                this.faultState[id].saveMessage = '✓ บันทึกแล้ว';
+                this.faultState[id].saveMessage = '✓ บันทึกสำเร็จ';
                 setTimeout(() => {
                     if (this.faultState[id]) this.faultState[id].saveMessage = '';
-                }, 1500);
+                }, 2000);
+                
+                // Reload history
+                await this.toggleFault(id, true);
 
             } catch (e) {
                 if (!this.faultState[id]) {
