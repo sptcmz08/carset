@@ -9,7 +9,7 @@ class TrainSetSeeder extends Seeder
 {
     public function run(): void
     {
-        $fourCarSets = ['T16', 'T17', 'T18', 'T19', 'T20', 'T21', 'T22', 'T23', 'T25'];
+        $fourCarSets = ['T16', 'T17', 'T18', 'T19', 'T20', 'T21', 'T22', 'T23', 'T24', 'T25'];
         $defaults = [
             'T01' => ['default_berth_no' => 'CT09B', 'default_outbound_run_no' => '1003', 'default_first_contact_plan' => '03:20', 'default_departure_plan_time' => '03:50', 'default_ktw_platform' => '3', 'default_ktw_next_depart_time' => '04:10', 'default_inbound_run_no' => '1176', 'default_end_station' => 'KTW4', 'default_end_time' => '23:54', 'default_end_no' => 'CT09B', 'default_end_depot' => 'TWP, CT09B', 'default_row_theme' => null],
             'T02' => ['default_berth_no' => 'DMG1', 'default_outbound_run_no' => '1004', 'default_first_contact_plan' => '03:20', 'default_departure_plan_time' => '03:50', 'default_ktw_platform' => '6', 'default_ktw_next_depart_time' => '04:10', 'default_inbound_run_no' => '1176', 'default_end_station' => 'KTW4', 'default_end_time' => '23:54', 'default_end_no' => 'CT07B', 'default_end_depot' => 'RST3', 'default_special_instructions' => '*** 4 Cars // inspection From DMG1 to RST3 / 1176 Last train NL RST3 to KTW4', 'default_row_theme' => null],
