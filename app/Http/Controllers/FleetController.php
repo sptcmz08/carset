@@ -148,36 +148,10 @@ class FleetController extends Controller
     public function updateStatus(Request $request, TrainSet $trainSet)
     {
         $validated = $request->validate([
-            'status' => 'required|in:active,retired',
-            'minor_fault_count' => 'nullable|integer|min:0',
-            'major_fault_count' => 'nullable|integer|min:0',
-            'overhaul_required' => 'nullable|boolean',
-            'repair_note' => 'nullable|string',
+            'status' => 'required|in:active,minor_repair,major_repair,retired',
         ]);
 
-        $trainSet->update([
-            'maintenance_status' => $validated['status'],
-            'minor_fault_count' => $validated['minor_fault_count'] ?? 0,
-            'major_fault_count' => $validated['major_fault_count'] ?? 0,
-            'overhaul_required' => (bool) ($validated['overhaul_required'] ?? false),
-            'repair_note' => $validated['repair_note'] ?? null,
-        ]);
-
-        if (
-            $trainSet->minor_fault_count > 0
-            || $trainSet->major_fault_count > 0
-            || $trainSet->overhaul_required
-            || ! empty($validated['repair_note'])
-        ) {
-            TrainSetMaintenanceLog::create([
-                'train_set_id' => $trainSet->id,
-                'maintenance_type' => $trainSet->major_fault_count > 0 || $trainSet->overhaul_required ? 'major_repair' : 'minor_repair',
-                'description' => $this->buildConditionDescription($trainSet, $validated['repair_note'] ?? null),
-                'mileage_at_service' => $trainSet->current_mileage,
-                'service_date' => Carbon::today(),
-                'status' => 'pending',
-            ]);
-        }
+        $trainSet->update(['maintenance_status' => $validated['status']]);
 
         return response()->json($this->buildStatusResponse($trainSet->fresh()));
     }
