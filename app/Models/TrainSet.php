@@ -34,6 +34,7 @@ class TrainSet extends Model
         'major_fault_count',
         'overhaul_required',
         'repair_note',
+        'planning_note',
     ];
 
     protected $casts = [

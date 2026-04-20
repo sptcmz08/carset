@@ -20,5 +20,7 @@ Route::get('/fleet/{trainSet}', [FleetController::class, 'show'])->name('fleet.s
 Route::post('/fleet/{trainSet}/mileage', [FleetController::class, 'updateMileage'])->name('fleet.mileage');
 Route::post('/fleet/{trainSet}/status', [FleetController::class, 'updateStatus'])->name('fleet.status');
 Route::post('/fleet/{trainSet}/schedule', [FleetController::class, 'updateSchedule'])->name('fleet.schedule');
+Route::post('/fleet/{trainSet}/planning-note', [FleetController::class, 'updatePlanningNote'])->name('fleet.planning-note');
+Route::post('/fleet/{trainSet}/fault', [FleetController::class, 'updateFault'])->name('fleet.fault');
 
 Route::get('/reports', [ReportController::class, 'index'])->name('reports');

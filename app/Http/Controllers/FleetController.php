@@ -17,6 +17,13 @@ class FleetController extends Controller
             ->orderBy('display_order')
             ->get();
 
+        $topMileageRanks = $allTrainSets
+            ->sortByDesc(fn (TrainSet $set) => (int) $set->current_mileage)
+            ->take(3)
+            ->values()
+            ->mapWithKeys(fn (TrainSet $set, int $idx) => [$set->id => $idx + 1])
+            ->all();
+
         $trainSets = $allTrainSets->filter(function (TrainSet $trainSet) use ($filter) {
             return match ($filter) {
                 'active' => $trainSet->health_status === 'available',
@@ -37,7 +44,7 @@ class FleetController extends Controller
             'retired' => $allTrainSets->where('maintenance_status', 'retired')->count(),
         ];
 
-        return view('fleet', compact('trainSets', 'filter', 'stats'));
+        return view('fleet', compact('trainSets', 'filter', 'stats', 'topMileageRanks'));
     }
 
     public function show(TrainSet $trainSet)
@@ -74,6 +81,66 @@ class FleetController extends Controller
             'log_date' => Carbon::today(),
             'mileage' => $validated['mileage'],
         ]);
+
+        return response()->json($this->buildStatusResponse($trainSet->fresh()));
+    }
+
+    public function updatePlanningNote(Request $request, TrainSet $trainSet)
+    {
+        $validated = $request->validate([
+            'planning_note' => 'nullable|string|max:255',
+        ]);
+
+        $trainSet->update([
+            'planning_note' => $validated['planning_note'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'planning_note' => $trainSet->planning_note,
+        ]);
+    }
+
+    public function updateFault(Request $request, TrainSet $trainSet)
+    {
+        $validated = $request->validate([
+            'minor_fault_count' => 'nullable|integer|min:0',
+            'major_fault_count' => 'nullable|integer|min:0',
+            'overhaul_required' => 'nullable|boolean',
+            'repair_note' => 'nullable|string',
+        ]);
+
+        $before = $trainSet->only(['minor_fault_count', 'major_fault_count', 'overhaul_required', 'repair_note']);
+
+        $trainSet->update([
+            'minor_fault_count' => $validated['minor_fault_count'] ?? 0,
+            'major_fault_count' => $validated['major_fault_count'] ?? 0,
+            'overhaul_required' => (bool) ($validated['overhaul_required'] ?? false),
+            'repair_note' => $validated['repair_note'] ?? null,
+        ]);
+
+        $changed = (
+            (int) ($before['minor_fault_count'] ?? 0) !== (int) $trainSet->minor_fault_count
+            || (int) ($before['major_fault_count'] ?? 0) !== (int) $trainSet->major_fault_count
+            || (bool) ($before['overhaul_required'] ?? false) !== (bool) $trainSet->overhaul_required
+            || (string) ($before['repair_note'] ?? '') !== (string) ($trainSet->repair_note ?? '')
+        );
+
+        if ($changed && (
+            $trainSet->minor_fault_count > 0
+            || $trainSet->major_fault_count > 0
+            || $trainSet->overhaul_required
+            || ! empty($trainSet->repair_note)
+        )) {
+            TrainSetMaintenanceLog::create([
+                'train_set_id' => $trainSet->id,
+                'maintenance_type' => $trainSet->major_fault_count > 0 || $trainSet->overhaul_required ? 'major_repair' : 'minor_repair',
+                'description' => $this->buildConditionDescription($trainSet, $trainSet->repair_note),
+                'mileage_at_service' => $trainSet->current_mileage,
+                'service_date' => Carbon::today(),
+                'status' => 'pending',
+            ]);
+        }
 
         return response()->json($this->buildStatusResponse($trainSet->fresh()));
     }

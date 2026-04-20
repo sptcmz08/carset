@@ -2,7 +2,7 @@
 @section('title', 'ฐานข้อมูลขบวน & Health Check')
 
 @section('content')
-<div x-data="fleetApp()">
+<div x-data="fleetTableApp()">
     <div class="stat-grid">
         <div class="stat-card amber">
             <div class="stat-icon"><i class="fas fa-train-subway"></i></div>
@@ -36,391 +36,423 @@
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;">
-        @foreach($trainSets as $trainSet)
-            @php
-                $mileagePct = $trainSet->next_service_mileage > 0 ? min(($trainSet->current_mileage / $trainSet->next_service_mileage) * 100, 100) : 0;
-                $maintenanceBadgeClass = in_array($trainSet->maintenance_status, ['major_repair', 'retired'], true)
-                    ? 'red'
-                    : ($trainSet->maintenance_status === 'minor_repair' ? 'yellow' : 'green');
-            @endphp
-            <div class="card" style="padding: 0; overflow: hidden; cursor: pointer;" @click="showDetail({{ $trainSet->id }})">
-                <div class="train-set-status-bar" data-color="{{ $trainSet->health_badge_class }}" style="height: 4px;"></div>
-                <div style="padding: 20px;">
-                    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: rgba(59,130,246,0.15); color: var(--blue); font-size: 20px;">
-                                <i class="fas fa-train-subway"></i>
-                            </div>
-                            <div>
-                                <div style="font-size: 18px; font-weight: 700;">{{ $trainSet->code }}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">{{ $trainSet->consist_label }}</div>
-                            </div>
-                        </div>
-                        <span class="badge badge-{{ $trainSet->health_badge_class }}">{{ $trainSet->health_icon }} {{ $trainSet->health_label }}</span>
-                    </div>
+    @php
+        $groupedTrainSets = $trainSets->groupBy('default_consist_type');
+        $typeOrder = ['6', '4'];
+    @endphp
 
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
-                        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-muted);">Type</div>
-                            <div style="font-size: 13px; font-weight: 600; margin-top: 2px;">{{ $trainSet->default_consist_type }} Cars</div>
-                        </div>
-                        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-muted);">ไมล์ปัจจุบัน</div>
-                            <div style="font-size: 13px; font-weight: 600; margin-top: 2px;">{{ number_format($trainSet->current_mileage) }}</div>
-                        </div>
-                        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-muted);">กำหนดถัดไป</div>
-                            <div style="font-size: 13px; font-weight: 600; margin-top: 2px;">{{ number_format($trainSet->next_service_mileage) }}</div>
-                        </div>
-                    </div>
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="min-width: 980px;">
+                <thead>
+                    <tr>
+                        <th colspan="2" class="fleet-head" style="width: 160px; text-align: center;">Train</th>
+                        <th rowspan="2" class="fleet-head" style="width: 120px; text-align: center;">Status</th>
+                        <th rowspan="2" class="fleet-head" style="width: 140px; text-align: center;">KM.</th>
+                        <th rowspan="2" class="fleet-head" style="text-align: center;">Note</th>
+                        <th rowspan="2" class="fleet-head" style="width: 80px; text-align: center;">Fault</th>
+                    </tr>
+                    <tr>
+                        <th class="fleet-subhead" style="width: 90px; text-align: center;">Type</th>
+                        <th class="fleet-subhead" style="width: 70px; text-align: center;">No</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($typeOrder as $type)
+                        @php
+                            $sets = $groupedTrainSets->get($type, collect())->sortBy('display_order')->values();
+                        @endphp
+                        @if($sets->count() > 0)
+                            @foreach($sets as $idx => $trainSet)
+                                @php
+                                    $statusLabel = match ($trainSet->health_status) {
+                                        'available' => 'Ready',
+                                        'warning' => 'Caution',
+                                        'out_of_service' => 'Off Service',
+                                        default => 'Ready',
+                                    };
+                                    $statusClass = match ($trainSet->health_status) {
+                                        'available' => 'green',
+                                        'warning' => 'yellow',
+                                        'out_of_service' => 'red',
+                                        default => 'green',
+                                    };
+                                    $mileageRank = $topMileageRanks[$trainSet->id] ?? null;
+                                    $mileageClass = $mileageRank ? ('mileage-top mileage-top-' . $mileageRank) : '';
+                                @endphp
+                                <tr style="background: rgba(255,255,255,0.01);" data-train-id="{{ $trainSet->id }}">
+                                    <td style="text-align: center; font-weight: 800; color: var(--text); vertical-align: middle; font-size: 16px;">
+                                        {{ $type }}
+                                    </td>
+                                    <td style="font-weight: 700; text-align: center;">{{ $trainSet->display_order }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ $statusClass }}" data-status-badge="{{ $trainSet->id }}" style="min-width: 110px; justify-content: center;">
+                                            {{ $statusLabel }}
+                                        </span>
+                                    </td>
+                                    <td class="{{ $mileageClass }}" data-km-cell="{{ $trainSet->id }}" style="position: relative;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <input
+                                                type="number"
+                                                class="form-input"
+                                                style="padding: 8px 10px; border-radius: 10px; flex: 1;"
+                                                value="{{ $trainSet->current_mileage }}"
+                                                min="0"
+                                                data-km-input="{{ $trainSet->id }}"
+                                                @change="updateMileage({{ $trainSet->id }}, $event.target.value)"
+                                                @keydown.enter="$event.target.blur()"
+                                            >
+                                            <span
+                                                x-show="mileageSaveState[{{ $trainSet->id }}] === 'saving'"
+                                                x-cloak
+                                                style="font-size: 11px; color: var(--amber); white-space: nowrap;"
+                                            ><i class="fas fa-spinner fa-spin"></i></span>
+                                            <span
+                                                x-show="mileageSaveState[{{ $trainSet->id }}] === 'saved'"
+                                                x-cloak
+                                                style="font-size: 11px; color: var(--green); white-space: nowrap;"
+                                            ><i class="fas fa-check"></i></span>
+                                            <span
+                                                x-show="mileageSaveState[{{ $trainSet->id }}] === 'error'"
+                                                x-cloak
+                                                style="font-size: 11px; color: var(--red); white-space: nowrap;"
+                                            ><i class="fas fa-times"></i></span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="text"
+                                            class="form-input"
+                                            style="padding: 8px 10px; border-radius: 10px;"
+                                            value="{{ $trainSet->planning_note }}"
+                                            placeholder="-"
+                                            @input="queuePlanningNote({{ $trainSet->id }}, $event.target.value)"
+                                        >
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <button
+                                            type="button"
+                                            class="fault-info-btn"
+                                            @click="toggleFault({{ $trainSet->id }})"
+                                            aria-label="Fault info"
+                                        >i</button>
+                                    </td>
+                                </tr>
+                                <tr x-show="isFaultOpen({{ $trainSet->id }})" x-cloak>
+                                    <td colspan="6" style="background: rgba(255,255,255,0.02);">
+                                        <div style="padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                            <div>
+                                                <div style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">ประวัติ Fault</div>
+                                                <div style="max-height: 190px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+                                                    <template x-if="faultState[{{ $trainSet->id }}]?.loading">
+                                                        <div style="padding: 12px; font-size: 12px; color: var(--text-muted);">กำลังโหลด...</div>
+                                                    </template>
+                                                    <template x-if="!faultState[{{ $trainSet->id }}]?.loading && (!faultState[{{ $trainSet->id }}]?.logs || faultState[{{ $trainSet->id }}]?.logs.length === 0)">
+                                                        <div style="padding: 12px; font-size: 12px; color: var(--text-muted);">ยังไม่มีประวัติ</div>
+                                                    </template>
+                                                    <template x-for="log in (faultState[{{ $trainSet->id }}]?.logs || [])" :key="log.id">
+                                                        <div style="padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                                                            <div style="font-size: 12px; font-weight: 600;" x-text="log.description"></div>
+                                                            <div style="font-size: 11px; color: var(--text-muted);" x-text="log.service_date"></div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
 
-                    <div style="margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Mileage Remaining</span>
-                            <span style="font-weight: 600;">{{ number_format($trainSet->mileage_remaining) }} km</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div
-                                class="fill mileage-fill"
-                                data-width="{{ $mileagePct }}"
-                                data-color="{{ $trainSet->health_status === 'out_of_service' ? 'red' : ($trainSet->health_status === 'warning' ? 'yellow' : 'green') }}"
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted);">
-                        <span><i class="fas fa-calendar"></i> {{ $trainSet->next_maintenance_date?->format('d/m/Y') ?: 'ยังไม่ระบุวันซ่อม' }}</span>
-                        <span class="badge badge-{{ $maintenanceBadgeClass }}">{{ $trainSet->maintenance_status_label }}</span>
-                    </div>
-
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-                        <span class="badge badge-blue">Fault Minor {{ $trainSet->minor_fault_count ?? 0 }}</span>
-                        <span class="badge badge-blue">Fault Major {{ $trainSet->major_fault_count ?? 0 }}</span>
-                        @if($trainSet->overhaul_required)
-                            <span class="badge badge-red">Overhaul</span>
+                                            <div>
+                                                <div style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">บันทึก Fault</div>
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                                    <div>
+                                                        <div class="form-label">Fault Minor</div>
+                                                        <input type="number" min="0" class="form-input" style="padding: 8px 10px;" value="{{ $trainSet->minor_fault_count ?? 0 }}" @input="queueFault({{ $trainSet->id }}, 'minor_fault_count', $event.target.value)">
+                                                    </div>
+                                                    <div>
+                                                        <div class="form-label">Fault Major</div>
+                                                        <input type="number" min="0" class="form-input" style="padding: 8px 10px;" value="{{ $trainSet->major_fault_count ?? 0 }}" @input="queueFault({{ $trainSet->id }}, 'major_fault_count', $event.target.value)">
+                                                    </div>
+                                                    <div style="grid-column: span 2;">
+                                                        <div class="form-label">Overhaul</div>
+                                                        <select class="form-select" style="padding: 8px 10px;" @change="queueFault({{ $trainSet->id }}, 'overhaul_required', $event.target.value)">
+                                                            <option value="0" {{ $trainSet->overhaul_required ? '' : 'selected' }}>No</option>
+                                                            <option value="1" {{ $trainSet->overhaul_required ? 'selected' : '' }}>Yes</option>
+                                                        </select>
+                                                    </div>
+                                                    <div style="grid-column: span 2;">
+                                                        <div class="form-label">รายละเอียด / อาการ / หมายเหตุเพิ่มเติม</div>
+                                                        <textarea class="form-input" rows="2" style="padding: 8px 10px;" @input="queueFault({{ $trainSet->id }}, 'repair_note', $event.target.value)">{{ $trainSet->repair_note }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);" x-text="faultState[{{ $trainSet->id }}]?.saveMessage || ''"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
                         @endif
-                    </div>
-
-                    @if($trainSet->repair_note)
-                    <div style="margin-top: 8px; padding: 8px 12px; background: var(--red-bg); border-radius: 8px; font-size: 12px; color: var(--red);">
-                        <i class="fas fa-circle-exclamation"></i> {{ $trainSet->repair_note }}
-                    </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
-    </div>
-
-    <div x-show="showDetailModal" x-cloak class="modal-overlay" @click.self="showDetailModal = false">
-        <div class="modal-content" style="max-width: 760px;">
-            <div class="modal-header">
-                <h3><span x-text="detail.health_icon"></span> <span x-text="detail.train_set?.code"></span> — Health Check</h3>
-                <button class="modal-close" @click="showDetailModal = false"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div style="padding: 16px; border-radius: 12px; margin-bottom: 20px;"
-                    :style="{ background: detail.health_status === 'available' ? 'var(--green-bg)' : detail.health_status === 'warning' ? 'var(--yellow-bg)' : 'var(--red-bg)' }">
-                    <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">
-                        <span x-text="detail.health_icon"></span>
-                        <span x-text="detail.health_label"></span>
-                    </div>
-                    <div style="font-size: 13px; color: var(--text-muted);">
-                        <template x-if="detail.health_status === 'available'">
-                            <span>ระบบประเมินว่าขบวนนี้พร้อมให้บริการ สามารถนำเข้าวางแผนรายวันได้</span>
-                        </template>
-                        <template x-if="detail.health_status === 'warning'">
-                            <span>ขบวนยังใช้งานได้ แต่ใกล้วาระซ่อมหรือมี minor issue ควรเฝ้าระวัง</span>
-                        </template>
-                        <template x-if="detail.health_status === 'out_of_service'">
-                            <span>ขบวนนี้ต้องงดให้บริการจนกว่าจะเคลียร์ condition monitoring หรือซ่อมบำรุงเสร็จ</span>
-                        </template>
-                    </div>
-                    <template x-if="detail.health_reasons && detail.health_reasons.length">
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
-                            <template x-for="reason in detail.health_reasons" :key="reason">
-                                <span class="badge badge-blue" x-text="reason"></span>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">Type</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="(detail.train_set?.default_consist_type || '-') + ' Cars'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">ไมล์ปัจจุบัน</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set ? Number(detail.train_set.current_mileage).toLocaleString() + ' km' : '-'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">ถึงกำหนดเช็คระยะ</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set ? Number(detail.train_set.next_service_mileage).toLocaleString() + ' km' : '-'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">ซ่อมล่าสุด</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.last_maintenance_date || '-'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">กำหนดซ่อมถัดไป</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.next_maintenance_date || '-'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">Fault Minor</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.minor_fault_count ?? 0"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">Fault Major</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.major_fault_count ?? 0"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">Overhaul</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.train_set?.overhaul_required ? 'Yes' : 'No'"></div>
-                    </div>
-                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">
-                        <div style="font-size: 11px; color: var(--text-muted);">สถานะงานซ่อม</div>
-                        <div style="font-size: 14px; font-weight: 600;" x-text="detail.maintenance_status_label || '-'"></div>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary btn-sm" @click="showMileageForm = !showMileageForm"><i class="fas fa-tachometer-alt"></i> อัปเดตไมล์</button>
-                    <button class="btn btn-secondary btn-sm" @click="showStatusForm = !showStatusForm"><i class="fas fa-screwdriver-wrench"></i> อัปเดต Fault / Condition</button>
-                    <button class="btn btn-secondary btn-sm" @click="showScheduleForm = !showScheduleForm"><i class="fas fa-calendar-days"></i> อัปเดตกำหนดซ่อม</button>
-                </div>
-
-                <div x-show="showMileageForm" style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-tachometer-alt" style="color: var(--amber);"></i> อัปเดตเลขไมล์</h4>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="number" x-model="newMileage" class="form-input" placeholder="เลขไมล์ใหม่" style="flex: 1;">
-                        <button class="btn btn-primary btn-sm" @click="updateMileage()">บันทึก</button>
-                    </div>
-                    <div x-show="mileageResult" x-text="mileageResult" style="margin-top: 8px; font-size: 13px; color: var(--green);"></div>
-                </div>
-
-                <div x-show="showStatusForm" style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-screwdriver-wrench" style="color: var(--amber);"></i> บันทึก Fault และเงื่อนไขจำลอง</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Fault Minor</label>
-                            <input type="number" min="0" x-model="minorFaultCount" class="form-input" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Fault Major</label>
-                            <input type="number" min="0" x-model="majorFaultCount" class="form-input" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Overhaul</label>
-                            <select x-model="overhaulRequired" class="form-select">
-                                <option :value="false">No</option>
-                                <option :value="true">Yes</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Operational State</label>
-                            <select x-model="newStatus" class="form-select">
-                                <option value="active">พร้อมใช้งาน</option>
-                                <option value="retired">ปลดระวาง</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <textarea x-model="repairNote" class="form-input" rows="2" placeholder="บันทึกอาการ / หมายเหตุเพิ่มเติม..."></textarea>
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
-                        ระบบจะคำนวณสีสถานะอัตโนมัติจากเงื่อนไขตัวอย่างที่กรอกไว้ โดยไม่ต้องเลือกสีเอง
-                    </div>
-                    <button class="btn btn-primary btn-sm" @click="updateStatus()">บันทึก</button>
-                    <div x-show="statusResult" style="margin-top: 8px; font-size: 13px;">
-                        <span x-text="statusResult"></span>
-                    </div>
-                </div>
-
-                <div x-show="showScheduleForm" style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-calendar-days" style="color: var(--amber);"></i> อัปเดตกำหนดซ่อม</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" x-model="nextServiceMileage" class="form-input" placeholder="Next service mileage">
-                        <input type="date" x-model="lastMaintenanceDate" class="form-input">
-                        <input type="date" x-model="nextMaintenanceDate" class="form-input" style="grid-column: span 2;">
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <button class="btn btn-primary btn-sm" @click="updateSchedule()">บันทึกกำหนดซ่อม</button>
-                    </div>
-                    <div x-show="scheduleResult" x-text="scheduleResult" style="margin-top: 8px; font-size: 13px; color: var(--green);"></div>
-                </div>
-
-                <h4 style="font-size: 14px; margin-bottom: 12px;"><i class="fas fa-history" style="color: var(--amber);"></i> ประวัติซ่อมบำรุง</h4>
-                <template x-if="detail.maintenance_logs && detail.maintenance_logs.length > 0">
-                    <div style="max-height: 220px; overflow-y: auto;">
-                        <template x-for="log in detail.maintenance_logs" :key="log.id">
-                            <div style="display: flex; align-items: flex-start; gap: 12px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
-                                <div style="width: 8px; height: 8px; border-radius: 50%; margin-top: 6px;"
-                                    :style="{ background: log.maintenance_type === 'scheduled' ? 'var(--blue)' : log.maintenance_type === 'minor_repair' ? 'var(--yellow)' : 'var(--red)' }"></div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 13px; font-weight: 600;" x-text="log.description"></div>
-                                    <div style="font-size: 11px; color: var(--text-muted);" x-text="log.service_date + ' • ฿' + Number(log.cost).toLocaleString()"></div>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-                <template x-if="!detail.maintenance_logs || detail.maintenance_logs.length === 0">
-                    <div class="empty-state" style="padding: 24px;">
-                        <p style="font-size: 13px;">ยังไม่มีประวัติซ่อมบำรุง</p>
-                    </div>
-                </template>
-            </div>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<style>[x-cloak] { display: none !important; }</style>
+<style>
+    [x-cloak] { display: none !important; }
+
+    .fleet-head {
+        background: rgba(255,255,255,0.06);
+        color: var(--text-muted);
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .fleet-subhead {
+        background: rgba(255,255,255,0.04);
+        color: var(--text-muted);
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .fault-info-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.02);
+        color: rgba(255,255,255,0.85);
+        font-weight: 800;
+        font-size: 12px;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fault-info-btn:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    td.mileage-top {
+        background: rgba(255,255,255,0.03);
+    }
+
+    td.mileage-top-1 {
+        background: #fde047;
+        color: #b91c1c;
+        font-weight: 800;
+    }
+
+    td.mileage-top-2,
+    td.mileage-top-3 {
+        background: #ef4444;
+        color: #fde047;
+        font-weight: 800;
+    }
+</style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const colorMap = {
-        green: 'var(--green)',
-        yellow: 'var(--yellow)',
-        red: 'var(--red)',
-        blue: 'var(--blue)',
-    };
-
-    document.querySelectorAll('.train-set-status-bar').forEach(function(element) {
-        element.style.background = colorMap[element.dataset.color] || 'var(--blue)';
-    });
-
-    document.querySelectorAll('.mileage-fill').forEach(function(element) {
-        const width = Number(element.dataset.width || 0);
-        element.style.width = width + '%';
-        element.style.background = colorMap[element.dataset.color] || 'var(--blue)';
-    });
-});
-
-function fleetApp() {
+function fleetTableApp() {
     return {
-        showDetailModal: false,
-        showMileageForm: false,
-        showStatusForm: false,
-        showScheduleForm: false,
-        currentTrainSetId: null,
-        detail: {},
-        newMileage: '',
-        newStatus: 'active',
-        minorFaultCount: 0,
-        majorFaultCount: 0,
-        overhaulRequired: false,
-        repairNote: '',
-        nextServiceMileage: '',
-        lastMaintenanceDate: '',
-        nextMaintenanceDate: '',
-        mileageResult: '',
-        statusResult: '',
-        scheduleResult: '',
+        openFaultIds: new Set(),
+        faultState: {},
+        planningNoteTimers: {},
+        faultTimers: {},
+        faultBuffers: {},
+        mileageSaveState: {},
 
-        async fetchDetail() {
-            const res = await fetch('/fleet/' + this.currentTrainSetId);
-            this.detail = await res.json();
-            this.newMileage = this.detail.train_set?.current_mileage || '';
-            this.newStatus = this.detail.train_set?.maintenance_status || 'active';
-            this.minorFaultCount = this.detail.train_set?.minor_fault_count || 0;
-            this.majorFaultCount = this.detail.train_set?.major_fault_count || 0;
-            this.overhaulRequired = Boolean(this.detail.train_set?.overhaul_required);
-            this.repairNote = this.detail.train_set?.repair_note || '';
-            this.nextServiceMileage = this.detail.train_set?.next_service_mileage || '';
-            this.lastMaintenanceDate = this.detail.train_set?.last_maintenance_date || '';
-            this.nextMaintenanceDate = this.detail.train_set?.next_maintenance_date || '';
+        statusFromHealth(healthStatus) {
+            const statusLabel = healthStatus === 'available'
+                ? 'Ready'
+                : (healthStatus === 'warning' ? 'Caution' : 'Off Service');
+            const statusClass = healthStatus === 'available'
+                ? 'green'
+                : (healthStatus === 'warning' ? 'yellow' : 'red');
+
+            return { statusLabel, statusClass };
         },
 
-        async showDetail(trainSetId) {
+        refreshMileageHighlights() {
+            const cells = Array.from(document.querySelectorAll('[data-km-cell]'));
+            const items = cells
+                .map((cell) => {
+                    const id = cell.getAttribute('data-km-cell');
+                    const input = document.querySelector('[data-km-input="' + id + '"]');
+                    const mileage = input ? parseInt(input.value, 10) : 0;
+                    return { id, mileage: Number.isNaN(mileage) ? 0 : mileage };
+                })
+                .sort((a, b) => b.mileage - a.mileage);
+
+            const top = items.slice(0, 3).map((item) => item.id);
+
+            cells.forEach((cell) => {
+                cell.classList.remove('mileage-top', 'mileage-top-1', 'mileage-top-2', 'mileage-top-3');
+            });
+
+            top.forEach((id, idx) => {
+                const cell = document.querySelector('[data-km-cell="' + id + '"]');
+                if (!cell) {
+                    return;
+                }
+                const rank = idx + 1;
+                cell.classList.add('mileage-top', 'mileage-top-' + rank);
+            });
+        },
+
+        isFaultOpen(id) {
+            return this.openFaultIds.has(id);
+        },
+
+        async toggleFault(id) {
+            if (this.openFaultIds.has(id)) {
+                this.openFaultIds.delete(id);
+                return;
+            }
+
+            this.openFaultIds.add(id);
+
+            if (this.faultState[id]?.loaded) {
+                return;
+            }
+
+            this.faultState[id] = { loading: true, loaded: false, logs: [], saveMessage: '' };
             try {
-                this.currentTrainSetId = trainSetId;
-                await this.fetchDetail();
-                this.showMileageForm = false;
-                this.showStatusForm = false;
-                this.showScheduleForm = false;
-                this.mileageResult = '';
-                this.statusResult = '';
-                this.scheduleResult = '';
-                this.showDetailModal = true;
+                const res = await fetch('/fleet/' + id);
+                const data = await res.json();
+                this.faultState[id].logs = (data.maintenance_logs || []).slice(0, 10);
+                this.faultState[id].loaded = true;
             } catch (e) {
-                console.error(e);
+                this.faultState[id].logs = [];
+            } finally {
+                this.faultState[id].loading = false;
             }
         },
 
-        async updateMileage() {
+        async updateMileage(id, mileage) {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            const parsed = parseInt(mileage, 10);
+            if (Number.isNaN(parsed)) {
+                return;
+            }
+
+            this.mileageSaveState[id] = 'saving';
+
             try {
-                const res = await fetch('/fleet/' + this.currentTrainSetId + '/mileage', {
+                const res = await fetch('/fleet/' + id + '/mileage', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': token,
                     },
-                    body: JSON.stringify({ mileage: parseInt(this.newMileage, 10) }),
+                    body: JSON.stringify({ mileage: parsed }),
                 });
 
                 if (!res.ok) {
                     throw new Error('Mileage update failed');
                 }
 
-                await this.fetchDetail();
-                this.mileageResult = 'อัปเดตเลขไมล์เรียบร้อย';
+                const data = await res.json();
+                const badge = document.querySelector('[data-status-badge="' + id + '"]');
+                if (badge && data && data.health_status) {
+                    const mapped = this.statusFromHealth(data.health_status);
+                    badge.textContent = mapped.statusLabel;
+                    badge.classList.remove('badge-green', 'badge-yellow', 'badge-red');
+                    badge.classList.add('badge-' + mapped.statusClass);
+                }
+
+                this.refreshMileageHighlights();
+                this.mileageSaveState[id] = 'saved';
+                setTimeout(() => { this.mileageSaveState[id] = null; }, 1500);
             } catch (e) {
-                this.mileageResult = 'เกิดข้อผิดพลาดในการอัปเดตเลขไมล์';
+                console.error(e);
+                this.mileageSaveState[id] = 'error';
+                setTimeout(() => { this.mileageSaveState[id] = null; }, 2000);
             }
         },
 
-        async updateStatus() {
+        queuePlanningNote(id, note) {
+            clearTimeout(this.planningNoteTimers[id]);
+            this.planningNoteTimers[id] = setTimeout(() => this.updatePlanningNote(id, note), 350);
+        },
+
+        async updatePlanningNote(id, note) {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
             try {
-                const res = await fetch('/fleet/' + this.currentTrainSetId + '/status', {
+                const res = await fetch('/fleet/' + id + '/planning-note', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': token,
                     },
-                    body: JSON.stringify({
-                        status: this.newStatus,
-                        minor_fault_count: parseInt(this.minorFaultCount, 10) || 0,
-                        major_fault_count: parseInt(this.majorFaultCount, 10) || 0,
-                        overhaul_required: this.overhaulRequired ? 1 : 0,
-                        repair_note: this.repairNote,
-                    }),
+                    body: JSON.stringify({ planning_note: note }),
                 });
 
                 if (!res.ok) {
-                    throw new Error('Status update failed');
+                    throw new Error('Planning note update failed');
                 }
-
-                await this.fetchDetail();
-                this.statusResult = 'บันทึกสถานะเรียบร้อย';
             } catch (e) {
-                this.statusResult = 'เกิดข้อผิดพลาดในการอัปเดตสถานะ';
+                console.error(e);
             }
         },
 
-        async updateSchedule() {
+        queueFault(id, field, value) {
+            this.faultBuffers[id] = this.faultBuffers[id] || {};
+            this.faultBuffers[id][field] = value;
+
+            clearTimeout(this.faultTimers[id]);
+            this.faultTimers[id] = setTimeout(() => this.updateFault(id), 400);
+        },
+
+        async updateFault(id) {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            const payload = this.faultBuffers[id] || {};
+            const normalized = {
+                minor_fault_count: payload.minor_fault_count !== undefined ? parseInt(payload.minor_fault_count, 10) || 0 : undefined,
+                major_fault_count: payload.major_fault_count !== undefined ? parseInt(payload.major_fault_count, 10) || 0 : undefined,
+                overhaul_required: payload.overhaul_required !== undefined ? (String(payload.overhaul_required) === '1' || String(payload.overhaul_required).toLowerCase() === 'true') : undefined,
+                repair_note: payload.repair_note !== undefined ? payload.repair_note : undefined,
+            };
+
+            Object.keys(normalized).forEach((key) => normalized[key] === undefined && delete normalized[key]);
+
             try {
-                const res = await fetch('/fleet/' + this.currentTrainSetId + '/schedule', {
+                const res = await fetch('/fleet/' + id + '/fault', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': token,
                     },
-                    body: JSON.stringify({
-                        next_service_mileage: parseInt(this.nextServiceMileage, 10),
-                        last_maintenance_date: this.lastMaintenanceDate || null,
-                        next_maintenance_date: this.nextMaintenanceDate || null,
-                    }),
+                    body: JSON.stringify(normalized),
                 });
 
                 if (!res.ok) {
-                    throw new Error('Schedule update failed');
+                    throw new Error('Fault update failed');
                 }
 
-                await this.fetchDetail();
-                this.scheduleResult = 'อัปเดตกำหนดซ่อมเรียบร้อย';
+                const data = await res.json();
+
+                const badge = document.querySelector('[data-status-badge="' + id + '"]');
+                if (badge && data && data.health_status) {
+                    const mapped = this.statusFromHealth(data.health_status);
+                    badge.textContent = mapped.statusLabel;
+                    badge.classList.remove('badge-green', 'badge-yellow', 'badge-red');
+                    badge.classList.add('badge-' + mapped.statusClass);
+                }
+
+                if (!this.faultState[id]) {
+                    this.faultState[id] = { loading: false, loaded: false, logs: [], saveMessage: '' };
+                }
+                this.faultState[id].saveMessage = 'บันทึกแล้ว';
+                setTimeout(() => {
+                    if (this.faultState[id]) {
+                        this.faultState[id].saveMessage = '';
+                    }
+                }, 1200);
             } catch (e) {
-                this.scheduleResult = 'เกิดข้อผิดพลาดในการอัปเดตกำหนดซ่อม';
+                if (!this.faultState[id]) {
+                    this.faultState[id] = { loading: false, loaded: false, logs: [], saveMessage: '' };
+                }
+                this.faultState[id].saveMessage = 'บันทึกไม่สำเร็จ';
             }
         },
     }
