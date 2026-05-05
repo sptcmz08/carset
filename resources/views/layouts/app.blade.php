@@ -517,8 +517,8 @@
         </div>
         <nav class="sidebar-nav">
             <div class="nav-label">เมนูหลัก</div>
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-chart-pie"></i> แดชบอร์ด
+            <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
+                <i class="fas fa-house"></i> Home
             </a>
             <a href="{{ route('daily-plan') }}" class="nav-link {{ request()->routeIs('daily-plan') ? 'active' : '' }}">
                 <i class="fas fa-calendar-day"></i> แผนงานรายวัน
@@ -552,12 +552,12 @@
                 <button class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h2>@yield('title', 'แดชบอร์ด')</h2>
+                <h2>@yield('title', 'Home')</h2>
             </div>
             <nav class="topbar-center-nav" aria-label="Main navigation">
-                <a href="{{ route('dashboard') }}" class="topbar-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>แดชบอร์ด</span>
+                <a href="{{ route('home') }}" class="topbar-nav-link {{ request()->routeIs('home') ? 'active' : '' }}">
+                    <i class="fas fa-house"></i>
+                    <span>Home</span>
                 </a>
                 <a href="{{ route('daily-plan') }}" class="topbar-nav-link {{ request()->routeIs('daily-plan') ? 'active' : '' }}">
                     <i class="fas fa-calendar-day"></i>

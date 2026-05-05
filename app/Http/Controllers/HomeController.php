@@ -6,7 +6,7 @@ use App\Models\ServicePlanDay;
 use App\Models\TrainSet;
 use Carbon\Carbon;
 
-class DashboardController extends Controller
+class HomeController extends Controller
 {
     public function index()
     {
@@ -74,31 +74,17 @@ class DashboardController extends Controller
             }
         }
 
-        $recentDays = ServicePlanDay::query()
-            ->whereBetween('service_date', [$today->copy()->subDays(6)->toDateString(), $today->toDateString()])
-            ->with('entries.trainSet')
-            ->get()
-            ->keyBy(fn (ServicePlanDay $day) => Carbon::parse($day->service_date)->format('Y-m-d'));
-
-        $chartLabels = [];
-        $chartAvailable = [];
-        $chartWarning = [];
-        $chartOut = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
-            $day = $recentDays->get($date->format('Y-m-d'));
-            $entries = $day?->entries ?? collect();
-
-            $chartLabels[] = $date->format('d/m');
-            $chartAvailable[] = $entries->where('effective_status', 'available')->count();
-            $chartWarning[] = $entries->where('effective_status', 'warning')->count();
-            $chartOut[] = $entries->where('effective_status', 'out_of_service')->count();
-        }
-
-        return view('dashboard', compact(
-            'totalTrainSets', 'availableCount', 'warningCount', 'outOfServiceCount',
-            'todayPlanned', 'todayWarning', 'todayOut',
-            'alerts', 'chartLabels', 'chartAvailable', 'chartWarning', 'chartOut', 'todayEntries', 'trainSets'
+        return view('home', compact(
+            'totalTrainSets',
+            'availableCount',
+            'warningCount',
+            'outOfServiceCount',
+            'todayPlanned',
+            'todayWarning',
+            'todayOut',
+            'alerts',
+            'todayEntries',
+            'trainSets'
         ));
     }
 }

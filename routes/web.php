@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DailyPlanController;
 use App\Http\Controllers\FleetController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/daily-plan', [DailyPlanController::class, 'index'])->name('daily-plan');
 Route::post('/daily-plan', [DailyPlanController::class, 'save'])->name('daily-plan.save');
