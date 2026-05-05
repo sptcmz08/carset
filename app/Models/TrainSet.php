@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 class TrainSet extends Model
 {
@@ -102,6 +103,10 @@ class TrainSet extends Model
 
     public function latestOperationChecks()
     {
+        if (! self::hasOperationCheckTable()) {
+            return collect();
+        }
+
         $checks = $this->relationLoaded('operationChecks')
             ? $this->operationChecks
             : $this->operationChecks()->get();
@@ -110,6 +115,15 @@ class TrainSet extends Model
             ->sortByDesc('created_at')
             ->unique(fn (TrainSetOperationCheck $check) => $check->category . ':' . $check->check_key)
             ->keyBy(fn (TrainSetOperationCheck $check) => $check->category . ':' . $check->check_key);
+    }
+
+    public static function hasOperationCheckTable(): bool
+    {
+        try {
+            return Schema::hasTable('train_set_operation_checks');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function getMileageRemainingAttribute(): int

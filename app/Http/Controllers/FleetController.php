@@ -14,7 +14,13 @@ class FleetController extends Controller
     public function index(Request $request)
     {
         $filter = $request->get('filter', 'all');
-        $allTrainSets = TrainSet::with(['operationChecks'])
+        $trainSetQuery = TrainSet::query();
+
+        if (TrainSet::hasOperationCheckTable()) {
+            $trainSetQuery->with(['operationChecks']);
+        }
+
+        $allTrainSets = $trainSetQuery
             ->withCount(['servicePlanEntries', 'maintenanceLogs'])
             ->orderBy('display_order')
             ->get();
@@ -51,12 +57,17 @@ class FleetController extends Controller
 
     public function show(TrainSet $trainSet)
     {
-        $trainSet->load([
+        $relations = [
             'maintenanceLogs' => fn ($query) => $query->orderBy('service_date', 'desc'),
             'mileageLogs' => fn ($query) => $query->orderBy('log_date', 'desc')->limit(30),
-            'operationChecks' => fn ($query) => $query->latest()->limit(60),
             'servicePlanEntries.day',
-        ]);
+        ];
+
+        if (TrainSet::hasOperationCheckTable()) {
+            $relations['operationChecks'] = fn ($query) => $query->latest()->limit(60);
+        }
+
+        $trainSet->load($relations);
 
         return response()->json([
             'train_set' => $trainSet,
@@ -68,7 +79,7 @@ class FleetController extends Controller
             'maintenance_status_label' => $trainSet->maintenance_status_label,
             'maintenance_logs' => $trainSet->maintenanceLogs,
             'mileage_logs' => $trainSet->mileageLogs,
-            'operation_checks' => $trainSet->operationChecks->map(fn (TrainSetOperationCheck $check) => [
+            'operation_checks' => (TrainSet::hasOperationCheckTable() ? $trainSet->operationChecks : collect())->map(fn (TrainSetOperationCheck $check) => [
                 'id' => $check->id,
                 'category' => $check->category,
                 'check_key' => $check->check_key,
@@ -116,6 +127,13 @@ class FleetController extends Controller
 
     public function updateOperationCheck(Request $request, TrainSet $trainSet)
     {
+        if (! TrainSet::hasOperationCheckTable()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Operation check table has not been migrated yet.',
+            ], 503);
+        }
+
         $validated = $request->validate([
             'departments' => 'array',
             'departments.*.status' => 'nullable|in:fit,not_fit',

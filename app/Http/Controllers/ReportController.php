@@ -32,7 +32,13 @@ class ReportController extends Controller
         $outOfServiceAssignments = $entries->where('effective_status', 'out_of_service')->count();
         $availabilityRate = $totalAssignments > 0 ? round($availableAssignments / $totalAssignments * 100, 1) : 0;
 
-        $trainSets = TrainSet::with('operationChecks')
+        $trainSetQuery = TrainSet::query();
+
+        if (TrainSet::hasOperationCheckTable()) {
+            $trainSetQuery->with('operationChecks');
+        }
+
+        $trainSets = $trainSetQuery
             ->orderBy('display_order')
             ->get();
 
@@ -74,35 +80,39 @@ class ReportController extends Controller
                 'status' => $log->status,
             ]);
 
-        $operationLogs = TrainSetOperationCheck::with('trainSet')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where(function ($query) {
-                $query->where(function ($departmentQuery) {
-                    $departmentQuery
-                        ->where('category', 'department')
-                        ->where(function ($issueQuery) {
-                            $issueQuery
-                                ->where('status', 'not_fit')
-                                ->orWhereNotNull('description');
-                        });
-                })->orWhere(function ($maintenanceQuery) {
-                    $maintenanceQuery
-                        ->where('category', 'maintenance')
-                        ->whereNotNull('description');
-                });
-            })
-            ->latest()
-            ->get()
-            ->map(fn (TrainSetOperationCheck $check) => [
-                'train_set_id' => $check->train_set_id,
-                'train_set' => $check->trainSet,
-                'date' => $check->created_at,
-                'title' => $check->category === 'maintenance'
-                    ? 'Maintenance / ' . $check->check_key
-                    : $check->check_key . ' / ' . $check->status_label,
-                'description' => $check->description ?: '-',
-                'status' => $check->status,
-            ]);
+        $operationLogs = collect();
+
+        if (TrainSet::hasOperationCheckTable()) {
+            $operationLogs = TrainSetOperationCheck::with('trainSet')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->where(function ($query) {
+                    $query->where(function ($departmentQuery) {
+                        $departmentQuery
+                            ->where('category', 'department')
+                            ->where(function ($issueQuery) {
+                                $issueQuery
+                                    ->where('status', 'not_fit')
+                                    ->orWhereNotNull('description');
+                            });
+                    })->orWhere(function ($maintenanceQuery) {
+                        $maintenanceQuery
+                            ->where('category', 'maintenance')
+                            ->whereNotNull('description');
+                    });
+                })
+                ->latest()
+                ->get()
+                ->map(fn (TrainSetOperationCheck $check) => [
+                    'train_set_id' => $check->train_set_id,
+                    'train_set' => $check->trainSet,
+                    'date' => $check->created_at,
+                    'title' => $check->category === 'maintenance'
+                        ? 'Maintenance / ' . $check->check_key
+                        : $check->check_key . ' / ' . $check->status_label,
+                    'description' => $check->description ?: '-',
+                    'status' => $check->status,
+                ]);
+        }
 
         $allDamageLogs = $maintenanceLogs
             ->concat($operationLogs)
