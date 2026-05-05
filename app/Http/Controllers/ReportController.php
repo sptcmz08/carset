@@ -52,12 +52,41 @@ class ReportController extends Controller
             ->groupBy(fn ($entry) => Carbon::parse($entry->day->service_date)->format('Y-m-d'))
             ->map(fn (Collection $dayEntries) => $dayEntries->keyBy('train_set_id'));
 
-        $statusMatrix = $trainSets->map(function (TrainSet $trainSet) use ($dates, $entriesByDate) {
+        $operationChecksByDateAndTrain = collect();
+        if (TrainSet::hasOperationCheckTable()) {
+            $operationChecksByDateAndTrain = TrainSetOperationCheck::query()
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get()
+                ->groupBy(function (TrainSetOperationCheck $check) {
+                    return $check->train_set_id . ':' . $check->created_at->format('Y-m-d');
+                });
+        }
+
+        $statusMatrix = $trainSets->map(function (TrainSet $trainSet) use ($dates, $entriesByDate, $operationChecksByDateAndTrain) {
             return [
                 'train_set' => $trainSet,
-                'statuses' => $dates->map(function (Carbon $date) use ($trainSet, $entriesByDate) {
-                    $entry = $entriesByDate->get($date->format('Y-m-d'))?->get($trainSet->id);
-                    $status = $entry?->effective_status ?? $trainSet->health_status;
+                'statuses' => $dates->map(function (Carbon $date) use ($trainSet, $entriesByDate, $operationChecksByDateAndTrain) {
+                    $dateKey = $date->format('Y-m-d');
+                    $entry = $entriesByDate->get($dateKey)?->get($trainSet->id);
+
+                    // Check operation checks for this specific date
+                    $dayChecks = $operationChecksByDateAndTrain->get($trainSet->id . ':' . $dateKey, collect());
+                    $hasNotFitOnDate = $dayChecks->contains(fn (TrainSetOperationCheck $check) =>
+                        $check->category === 'department' && $check->status === 'not_fit'
+                    ) || $dayChecks->contains(fn (TrainSetOperationCheck $check) =>
+                        $check->category === 'maintenance' && $check->status === 'not_fit'
+                    );
+
+                    if ($hasNotFitOnDate) {
+                        $status = 'out_of_service';
+                    } elseif ($entry) {
+                        $status = $entry->effective_status;
+                    } elseif ($date->isToday()) {
+                        $status = $trainSet->health_status;
+                    } else {
+                        // For past dates without plan entry or operation check, show as available
+                        $status = 'available';
+                    }
 
                     return [
                         'date' => $date,

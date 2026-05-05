@@ -139,6 +139,7 @@ class FleetController extends Controller
             'departments.*.status' => 'nullable|in:fit,not_fit',
             'departments.*.description' => 'nullable|string|max:2000',
             'maintenance' => 'array',
+            'maintenance.*.status' => 'nullable|in:fit,not_fit',
             'maintenance.*.description' => 'nullable|string|max:2000',
         ]);
 
@@ -163,14 +164,15 @@ class FleetController extends Controller
         $maintenanceRows = $validated['maintenance'] ?? [];
         foreach (TrainSetOperationCheck::MAINTENANCE_TYPES as $key => $label) {
             $row = $maintenanceRows[$key] ?? [];
+            $status = $row['status'] ?? 'fit';
             $description = $this->stringOrNull($row['description'] ?? null);
             $latestCheck = $latest->get('maintenance:' . $key);
 
-            if ($description !== null || $latestCheck) {
+            if ($status !== 'fit' || $description !== null || $latestCheck) {
                 $this->createOperationCheckWhenChanged($trainSet, $latestCheck, [
                     'category' => 'maintenance',
                     'check_key' => $key,
-                    'status' => null,
+                    'status' => $status,
                     'description' => $description,
                 ]);
             }

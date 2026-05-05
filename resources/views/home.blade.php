@@ -249,28 +249,7 @@
         </div>
     </section>
 
-    <div class="stat-grid">
-        <div class="stat-card amber">
-            <div class="stat-icon"><i class="fas fa-train-subway"></i></div>
-            <div class="stat-value">{{ $totalTrainSets }}</div>
-            <div class="stat-label">ขบวนทั้งหมด</div>
-        </div>
-        <div class="stat-card green">
-            <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
-            <div class="stat-value">{{ $availableCount }}</div>
-            <div class="stat-label">พร้อมให้บริการ</div>
-        </div>
-        <div class="stat-card blue">
-            <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="stat-value">{{ $warningCount }}</div>
-            <div class="stat-label">ใกล้วาระซ่อม</div>
-        </div>
-        <div class="stat-card red">
-            <div class="stat-icon"><i class="fas fa-ban"></i></div>
-            <div class="stat-value">{{ $outOfServiceCount }}</div>
-            <div class="stat-label">งดให้บริการ</div>
-        </div>
-    </div>
+
 
     <section class="home-section-grid">
         <div class="card">
@@ -348,25 +327,6 @@
         </div>
     </section>
 
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-th-large" style="color: var(--amber);"></i> ภาพรวมขบวน</h3>
-            <a href="{{ route('fleet') }}" class="btn btn-secondary btn-sm">ดูทั้งหมด <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="fleet-mini-grid">
-            @foreach($trainSets as $trainSet)
-                <div class="fleet-mini-card">
-                    <div class="vehicle-icon bus">
-                        <i class="fas fa-train-subway"></i>
-                    </div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-size: 14px; font-weight: 700;">{{ $trainSet->code }}</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">{{ $trainSet->consist_label }} - {{ $trainSet->default_berth_no ?: '-' }}</div>
-                    </div>
-                    <span class="badge badge-{{ $trainSet->health_badge_class }}">{{ $trainSet->health_icon }}</span>
-                </div>
-            @endforeach
-        </div>
-    </div>
+
 </div>
 @endsection

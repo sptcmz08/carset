@@ -43,13 +43,13 @@
 
     <div class="card" style="padding: 0; overflow: hidden;">
         <div style="overflow-x: auto;">
-            <table class="data-table fleet-table" style="min-width: 1500px;">
+            <table class="data-table fleet-table" style="min-width: 1100px;">
                 <thead>
                     <tr>
                         <th colspan="2" class="fleet-head" style="width: 160px; text-align: center;">Train</th>
                         <th rowspan="2" class="fleet-head" style="width: 120px; text-align: center;">Status</th>
-                        <th rowspan="2" class="fleet-head" style="width: 160px; text-align: center;">KM.</th>
-                        <th rowspan="2" class="fleet-head" style="width: 760px; text-align: center;">Note</th>
+                        <th rowspan="2" class="fleet-head" style="width: 100px; text-align: center;">KM.</th>
+                        <th rowspan="2" class="fleet-head" style="text-align: center;">Note</th>
                         <th rowspan="2" class="fleet-head" style="width: 80px; text-align: center;">Fault</th>
                     </tr>
                     <tr>
@@ -220,13 +220,30 @@
                                                     @endforeach
 
                                                     <tr class="operation-section-row">
-                                                        <td colspan="2">Maintenance</td>
-                                                        <td>Type</td>
-                                                        <td>Description</td>
+                                                        <th colspan="2">Maintenance</th>
+                                                        <th>Fit for</th>
+                                                        <th>Not fit</th>
                                                     </tr>
                                                     @foreach($operationChecks['maintenance'] as $maintenanceKey => $row)
-                                                        <tr class="operation-maintenance-row" data-operation-maintenance="{{ $maintenanceKey }}">
-                                                            <td colspan="2" class="operation-maintenance-label">Maintenance</td>
+                                                        <tr class="operation-maintenance-row {{ ($row['status'] ?? null) === 'not_fit' ? 'operation-row-not-fit' : '' }}" data-operation-maintenance="{{ $maintenanceKey }}">
+                                                            <td class="operation-radio-cell">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="maint_{{ $trainSet->id }}_{{ $maintenanceKey }}"
+                                                                    value="fit"
+                                                                    data-operation-maintenance-status="fit"
+                                                                    {{ ($row['status'] ?? 'fit') === 'fit' ? 'checked' : '' }}
+                                                                >
+                                                            </td>
+                                                            <td class="operation-radio-cell">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="maint_{{ $trainSet->id }}_{{ $maintenanceKey }}"
+                                                                    value="not_fit"
+                                                                    data-operation-maintenance-status="not_fit"
+                                                                    {{ ($row['status'] ?? 'fit') === 'not_fit' ? 'checked' : '' }}
+                                                                >
+                                                            </td>
                                                             <td class="operation-key-cell"><strong>{{ $maintenanceKey }}</strong></td>
                                                             <td>
                                                                 <input
@@ -492,7 +509,8 @@
         background: rgba(239, 68, 68, 0.34) !important;
         color: #fff;
     }
-    .operation-section-row td {
+    .operation-section-row td,
+    .operation-section-row th {
         background: rgba(245,158,11,0.12);
         color: var(--amber);
         text-align: center;
@@ -936,8 +954,10 @@ function fleetTableApp() {
 
             cell.querySelectorAll('[data-operation-maintenance]').forEach((row) => {
                 const key = row.getAttribute('data-operation-maintenance');
+                const checked = row.querySelector('[data-operation-maintenance-status]:checked');
                 const description = row.querySelector('[data-operation-maintenance-description]');
                 maintenance[key] = {
+                    status: checked ? checked.value : 'fit',
                     description: description ? description.value : '',
                 };
             });
@@ -965,6 +985,11 @@ function fleetTableApp() {
             Object.entries(snapshot.maintenance || {}).forEach(([key, rowData]) => {
                 const row = cell.querySelector('[data-operation-maintenance="' + key + '"]');
                 if (!row) return;
+
+                row.classList.toggle('operation-row-not-fit', rowData.status === 'not_fit');
+
+                const checked = row.querySelector('[data-operation-maintenance-status="' + (rowData.status || 'fit') + '"]');
+                if (checked) checked.checked = true;
 
                 const description = row.querySelector('[data-operation-maintenance-description]');
                 if (description) description.value = rowData.description || '';

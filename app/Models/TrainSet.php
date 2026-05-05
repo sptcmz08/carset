@@ -91,6 +91,7 @@ class TrainSet extends Model
             $check = $latest->get('maintenance:' . $key);
             $maintenance[$key] = [
                 'label' => $label,
+                'status' => $check?->status ?? 'fit',
                 'description' => $check?->description ?? '',
             ];
         }
@@ -192,6 +193,12 @@ class TrainSet extends Model
 
         foreach (TrainSetOperationCheck::DEPARTMENTS as $key => $label) {
             if ($latest->get('department:' . $key)?->status === 'not_fit') {
+                return true;
+            }
+        }
+
+        foreach (TrainSetOperationCheck::MAINTENANCE_TYPES as $key => $label) {
+            if ($latest->get('maintenance:' . $key)?->status === 'not_fit') {
                 return true;
             }
         }
