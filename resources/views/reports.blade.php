@@ -2,7 +2,120 @@
 @section('title', 'รายงาน')
 
 @section('content')
-<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+<style>
+    .report-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .status-matrix-wrap {
+        overflow-x: auto;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+    }
+
+    .status-matrix {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+    }
+
+    .status-matrix th,
+    .status-matrix td {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        border-right: 1px solid rgba(255,255,255,0.05);
+        padding: 8px 10px;
+        font-size: 12px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .status-matrix th {
+        background: rgba(255,255,255,0.06);
+        color: var(--text-muted);
+        font-weight: 800;
+    }
+
+    .status-matrix .train-col {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        min-width: 100px;
+        background: #111c31;
+        text-align: left;
+        color: var(--text);
+        font-weight: 800;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 76px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .status-chip.available {
+        background: rgba(34,197,94,0.16);
+        color: #86efac;
+    }
+
+    .status-chip.warning {
+        background: rgba(234,179,8,0.16);
+        color: #fde047;
+    }
+
+    .status-chip.out_of_service {
+        background: rgba(239,68,68,0.18);
+        color: #fca5a5;
+    }
+
+    .damage-row {
+        vertical-align: top;
+    }
+
+    .damage-log-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .damage-log {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.035);
+    }
+
+    .damage-log.not-fit {
+        background: rgba(239,68,68,0.12);
+        border-color: rgba(239,68,68,0.22);
+    }
+
+    .damage-log-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .damage-log-desc {
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+</style>
+
+<div class="report-toolbar">
     <div class="filter-tabs">
         @foreach(['7' => '7 วัน', '14' => '14 วัน', '30' => '1 เดือน', '90' => '3 เดือน', '180' => '6 เดือน'] as $val => $label)
             <a href="{{ route('reports', ['period' => $val]) }}" class="filter-tab {{ $period == $val ? 'active' : '' }}">{{ $label }}</a>
@@ -10,7 +123,7 @@
     </div>
     <div style="font-size: 13px; color: var(--text-muted);">
         <i class="fas fa-calendar-range"></i>
-        {{ $startDate->format('d/m/Y') }} — {{ $endDate->format('d/m/Y') }}
+        {{ $startDate->format('d/m/Y') }} - {{ $endDate->format('d/m/Y') }}
     </div>
 </div>
 
@@ -28,97 +141,42 @@
     <div class="stat-card amber">
         <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
         <div class="stat-value">{{ $warningAssignments }}</div>
-        <div class="stat-label">สถานะเฝ้าระวัง</div>
+        <div class="stat-label">สถานะ Caution</div>
     </div>
     <div class="stat-card red">
         <div class="stat-icon"><i class="fas fa-ban"></i></div>
         <div class="stat-value">{{ $outOfServiceAssignments }}</div>
-        <div class="stat-label">งดให้บริการ</div>
+        <div class="stat-label">Not Service</div>
     </div>
 </div>
 
-<div class="grid-2">
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-chart-line" style="color: var(--amber);"></i> แนวโน้มสถานะรายวัน</h3>
-        </div>
-        <div style="position: relative; height: 300px;">
-            <canvas
-                id="reportChart"
-                data-labels='@json($chartLabels)'
-                data-available='@json($chartAvailable)'
-                data-warning='@json($chartWarning)'
-                data-out='@json($chartOut)'
-                data-point-radius="{{ $days <= 30 ? 3 : 0 }}"
-            ></canvas>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-coins" style="color: var(--amber);"></i> ค่าซ่อมบำรุง</h3>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="text-align: center; padding: 24px; background: rgba(245,158,11,0.08); border-radius: 12px;">
-                <div style="font-size: 32px; font-weight: 700; color: var(--amber);">฿{{ number_format($totalMaintenanceCost) }}</div>
-                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ค่าซ่อมบำรุงรวม</div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="padding: 16px; background: var(--blue-bg); border-radius: 12px; text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: var(--blue);">฿{{ number_format($scheduledCost) }}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ซ่อมตามกำหนด</div>
-                </div>
-                <div style="padding: 16px; background: var(--red-bg); border-radius: 12px; text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: var(--red);">฿{{ number_format($repairCost) }}</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ซ่อมฉุกเฉิน</div>
-                </div>
-            </div>
-            <div style="position: relative; height: 200px;">
-                <canvas
-                    id="costChart"
-                    data-scheduled="{{ $scheduledCost }}"
-                    data-repair="{{ $repairCost }}"
-                ></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card" style="margin-top: 24px;">
+<div class="card">
     <div class="card-header">
-        <h3><i class="fas fa-chart-simple" style="color: var(--amber);"></i> การใช้งาน Train Set</h3>
+        <h3><i class="fas fa-table-cells-large" style="color: var(--amber);"></i> แนวโน้มสถานะรายวัน 25 ขบวน</h3>
         <span class="badge badge-blue" style="font-size: 11px;">ช่วง {{ $periodDays }} วัน</span>
     </div>
-    <div style="overflow-x: auto;">
-        <table class="data-table">
+    <div class="status-matrix-wrap">
+        <table class="status-matrix">
             <thead>
                 <tr>
-                    <th>Train Set</th>
-                    <th>Type</th>
-                    <th>วันใช้งาน</th>
-                    <th>Utilization</th>
-                    <th>Health</th>
+                    <th class="train-col">Train Set</th>
+                    @foreach($dates as $date)
+                        <th>{{ $date->format('d/m') }}</th>
+                    @endforeach
                 </tr>
             </thead>
             <tbody>
-                @foreach($trainSetUtilization as $item)
+                @foreach($statusMatrix as $row)
                     <tr>
-                        <td style="font-size: 13px; font-weight: 700;">{{ $item['train_set']->code }}</td>
-                        <td style="font-size: 13px;">{{ $item['train_set']->consist_label }}</td>
-                        <td style="font-size: 13px; font-weight: 600;">{{ $item['planned_days'] }} วัน</td>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div class="progress-bar" style="flex: 1; max-width: 120px;">
-                                    <div
-                                        class="fill utilization-fill"
-                                        data-width="{{ $item['utilization'] }}"
-                                        data-color="{{ $item['utilization'] > 70 ? 'green' : ($item['utilization'] > 30 ? 'amber' : 'red') }}"
-                                    ></div>
-                                </div>
-                                <span style="font-size: 12px; font-weight: 600; min-width: 40px;">{{ $item['utilization'] }}%</span>
-                            </div>
+                        <td class="train-col">
+                            {{ $row['train_set']->code }}
+                            <span style="display: block; color: var(--text-muted); font-size: 10px; font-weight: 600;">{{ $row['train_set']->consist_label }}</span>
                         </td>
-                        <td><span class="badge badge-{{ $item['train_set']->health_badge_class }}">{{ $item['train_set']->health_icon }} {{ $item['train_set']->health_label }}</span></td>
+                        @foreach($row['statuses'] as $status)
+                            <td>
+                                <span class="status-chip {{ $status['status'] }}">{{ $status['label'] }}</span>
+                            </td>
+                        @endforeach
                     </tr>
                 @endforeach
             </tbody>
@@ -126,143 +184,47 @@
     </div>
 </div>
 
-@if($problemTrainSets->count() > 0)
 <div class="card" style="margin-top: 24px;">
     <div class="card-header">
-        <h3><i class="fas fa-triangle-exclamation" style="color: var(--red);"></i> ขบวนที่มีปัญหาบ่อย</h3>
+        <h3><i class="fas fa-clock-rotate-left" style="color: var(--amber);"></i> ประวัติความเสียหายของแต่ละคัน</h3>
+        <span class="badge badge-red" style="font-size: 11px;">{{ $damageHistoryTotal }} รายการ / {{ $affectedTrainSets }} ขบวน</span>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
-        @foreach($problemTrainSets as $item)
-        <div style="padding: 16px; border-radius: 12px; background: var(--red-bg); border: 1px solid rgba(239,68,68,0.15);">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <div style="width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(59,130,246,0.15); color: var(--blue);">
-                    <i class="fas fa-train-subway"></i>
-                </div>
-                <div>
-                    <div style="font-weight: 700;">{{ $item['train_set']?->code ?? '-' }}</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">{{ $item['train_set']?->consist_label ?? 'N/A' }}</div>
-                </div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                <span>เกิดปัญหา {{ $item['count'] }} ครั้ง</span>
-                <span style="font-weight: 600; color: var(--red);">฿{{ number_format($item['total_cost']) }}</span>
-            </div>
-        </div>
-        @endforeach
+    <div style="overflow-x: auto;">
+        <table class="data-table" style="min-width: 920px;">
+            <thead>
+                <tr>
+                    <th style="width: 130px;">Train Set</th>
+                    <th>ประวัติในช่วง {{ $periodDays }} วัน</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($damageHistory as $item)
+                    <tr class="damage-row">
+                        <td>
+                            <div style="font-weight: 800;">{{ $item['train_set']->code }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">{{ $item['train_set']->consist_label }}</div>
+                        </td>
+                        <td>
+                            @if($item['logs']->count() > 0)
+                                <div class="damage-log-list">
+                                    @foreach($item['logs'] as $log)
+                                        <div class="damage-log {{ $log['status'] === 'not_fit' ? 'not-fit' : '' }}">
+                                            <div class="damage-log-title">
+                                                <span>{{ $log['title'] }}</span>
+                                                <span style="color: var(--text-muted); font-weight: 600;">{{ \Carbon\Carbon::parse($log['date'])->format('d/m/Y H:i') }}</span>
+                                            </div>
+                                            <div class="damage-log-desc">{{ $log['description'] }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span style="color: var(--text-muted); font-size: 13px;">ไม่มีประวัติความเสียหายในช่วงนี้</span>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
 </div>
-@endif
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const reportChartElement = document.getElementById('reportChart');
-    const costChartElement = document.getElementById('costChart');
-
-    document.querySelectorAll('.utilization-fill').forEach(function(element) {
-        const width = Number(element.dataset.width || 0);
-        const colorMap = {
-            green: 'var(--green)',
-            amber: 'var(--amber)',
-            red: 'var(--red)',
-        };
-
-        element.style.width = width + '%';
-        element.style.background = colorMap[element.dataset.color] || 'var(--blue)';
-    });
-
-    if (reportChartElement) {
-        const labels = JSON.parse(reportChartElement.dataset.labels || '[]');
-        const availableData = JSON.parse(reportChartElement.dataset.available || '[]');
-        const warningData = JSON.parse(reportChartElement.dataset.warning || '[]');
-        const outData = JSON.parse(reportChartElement.dataset.out || '[]');
-        const pointRadius = Number(reportChartElement.dataset.pointRadius || 0);
-
-        new Chart(reportChartElement.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: 'พร้อมให้บริการ',
-                        data: availableData,
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius,
-                    },
-                    {
-                        label: 'ใกล้วาระซ่อม',
-                        data: warningData,
-                        borderColor: 'rgba(234, 179, 8, 1)',
-                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius,
-                    },
-                    {
-                        label: 'งดให้บริการ',
-                        data: outData,
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#94a3b8', font: { size: 12 } } },
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { color: '#94a3b8', stepSize: 1 },
-                        grid: { color: 'rgba(255,255,255,0.04)' },
-                    },
-                    x: {
-                        ticks: { color: '#94a3b8', maxTicksLimit: 15 },
-                        grid: { display: false },
-                    }
-                }
-            }
-        });
-    }
-
-    if (costChartElement) {
-        const scheduledCost = Number(costChartElement.dataset.scheduled || 0);
-        const repairCost = Number(costChartElement.dataset.repair || 0);
-
-        new Chart(costChartElement.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: ['ซ่อมตามกำหนด', 'ซ่อมฉุกเฉิน'],
-                datasets: [{
-                    data: [scheduledCost, repairCost],
-                    backgroundColor: ['rgba(59, 130, 246, 0.7)', 'rgba(239, 68, 68, 0.7)'],
-                    borderColor: ['rgba(59, 130, 246, 1)', 'rgba(239, 68, 68, 1)'],
-                    borderWidth: 1,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { color: '#94a3b8', font: { size: 12 }, padding: 16 },
-                    }
-                }
-            }
-        });
-    }
-});
-</script>
 @endsection

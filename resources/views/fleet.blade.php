@@ -43,13 +43,13 @@
 
     <div class="card" style="padding: 0; overflow: hidden;">
         <div style="overflow-x: auto;">
-            <table class="data-table fleet-table" style="min-width: 980px;">
+            <table class="data-table fleet-table" style="min-width: 1500px;">
                 <thead>
                     <tr>
                         <th colspan="2" class="fleet-head" style="width: 160px; text-align: center;">Train</th>
                         <th rowspan="2" class="fleet-head" style="width: 120px; text-align: center;">Status</th>
                         <th rowspan="2" class="fleet-head" style="width: 160px; text-align: center;">KM.</th>
-                        <th rowspan="2" class="fleet-head" style="text-align: center;">Note</th>
+                        <th rowspan="2" class="fleet-head" style="width: 760px; text-align: center;">Note</th>
                         <th rowspan="2" class="fleet-head" style="width: 80px; text-align: center;">Fault</th>
                     </tr>
                     <tr>
@@ -85,6 +85,7 @@
                                     };
                                     $mileageRank  = $topMileageRanks[$trainSet->id] ?? null;
                                     $mileageClass = $mileageRank ? ('mileage-top mileage-top-' . $mileageRank) : '';
+                                    $operationChecks = $trainSet->operationCheckSnapshot();
                                 @endphp
 
                                 {{-- Main data row --}}
@@ -164,15 +165,98 @@
                                     </td>
 
                                     {{-- Note --}}
-                                    <td>
-                                        <input
-                                            type="text"
-                                            class="form-input"
-                                            style="padding: 8px 10px; border-radius: 10px;"
-                                            value="{{ $trainSet->planning_note }}"
-                                            placeholder="—"
-                                            @input="queuePlanningNote({{ $trainSet->id }}, $event.target.value)"
-                                        >
+                                    <td class="operation-cell" data-operation-cell="{{ $trainSet->id }}">
+                                        <div class="operation-table-shell">
+                                            <table class="operation-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th colspan="2">Status</th>
+                                                        <th rowspan="2">Dep.</th>
+                                                        <th rowspan="2">Description</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Fit for</th>
+                                                        <th>Not fit</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($operationChecks['departments'] as $depKey => $row)
+                                                        <tr
+                                                            class="operation-dept-row {{ $row['status'] === 'not_fit' ? 'operation-row-not-fit' : '' }}"
+                                                            data-operation-department="{{ $depKey }}"
+                                                        >
+                                                            <td class="operation-radio-cell">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="operation_{{ $trainSet->id }}_{{ $depKey }}"
+                                                                    value="fit"
+                                                                    data-operation-status="fit"
+                                                                    {{ $row['status'] === 'fit' ? 'checked' : '' }}
+                                                                >
+                                                            </td>
+                                                            <td class="operation-radio-cell">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="operation_{{ $trainSet->id }}_{{ $depKey }}"
+                                                                    value="not_fit"
+                                                                    data-operation-status="not_fit"
+                                                                    {{ $row['status'] === 'not_fit' ? 'checked' : '' }}
+                                                                >
+                                                            </td>
+                                                            <td class="operation-key-cell">
+                                                                <strong>{{ $depKey }}</strong>
+                                                                <small>{{ $row['label'] }}</small>
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    class="operation-description-input"
+                                                                    data-operation-description
+                                                                    value="{{ $row['description'] }}"
+                                                                    placeholder="รายละเอียดความเสียหาย"
+                                                                >
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+
+                                                    <tr class="operation-section-row">
+                                                        <td colspan="2">Maintenance</td>
+                                                        <td>Type</td>
+                                                        <td>Description</td>
+                                                    </tr>
+                                                    @foreach($operationChecks['maintenance'] as $maintenanceKey => $row)
+                                                        <tr class="operation-maintenance-row" data-operation-maintenance="{{ $maintenanceKey }}">
+                                                            <td colspan="2" class="operation-maintenance-label">Maintenance</td>
+                                                            <td class="operation-key-cell"><strong>{{ $maintenanceKey }}</strong></td>
+                                                            <td>
+                                                                <input
+                                                                    type="text"
+                                                                    class="operation-description-input"
+                                                                    data-operation-maintenance-description
+                                                                    value="{{ $row['description'] }}"
+                                                                    placeholder="ระบุช่วงเวลาซ่อมบำรุง"
+                                                                >
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                            <div class="operation-actions">
+                                                <span
+                                                    class="operation-save-msg"
+                                                    x-text="operationSaveState[{{ $trainSet->id }}]?.message || ''"
+                                                    :class="{ 'operation-save-msg-error': operationSaveState[{{ $trainSet->id }}]?.state === 'error', 'operation-save-msg-saved': operationSaveState[{{ $trainSet->id }}]?.state === 'saved' }"
+                                                ></span>
+                                                <button
+                                                    type="button"
+                                                    class="operation-save-btn"
+                                                    :class="{ 'operation-save-btn-saved': operationSaveState[{{ $trainSet->id }}]?.state === 'saved' }"
+                                                    @click="updateOperationCheck({{ $trainSet->id }}, $event)"
+                                                >
+                                                    <i class="fas fa-save"></i> Save
+                                                </button>
+                                            </div>
+                                        </div>
                                     </td>
 
                                     {{-- Fault icon --}}
@@ -226,6 +310,31 @@
                                                             <div class="fault-history-item">
                                                                 <div class="fault-history-desc" x-text="log.description"></div>
                                                                 <div class="fault-history-date" x-text="formatDateTime(log.created_at || log.service_date)"></div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Center: Department History --}}
+                                                <div class="fault-col">
+                                                    <div class="fault-col-title">
+                                                        <i class="fas fa-clock-rotate-left"></i> ประวัติแผนก / Maintenance
+                                                    </div>
+                                                    <div class="fault-history-list">
+                                                        <template x-if="faultState[{{ $trainSet->id }}]?.loading">
+                                                            <div class="fault-history-empty"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div>
+                                                        </template>
+                                                        <template x-if="!faultState[{{ $trainSet->id }}]?.loading && (!faultState[{{ $trainSet->id }}]?.operationChecks || faultState[{{ $trainSet->id }}]?.operationChecks.length === 0)">
+                                                            <div class="fault-history-empty"><i class="fas fa-inbox"></i> ยังไม่มีประวัติ</div>
+                                                        </template>
+                                                        <template x-for="check in (faultState[{{ $trainSet->id }}]?.operationChecks || [])" :key="check.id">
+                                                            <div class="fault-history-item" :class="{ 'operation-history-not-fit': check.status === 'not_fit' }">
+                                                                <div class="fault-history-desc">
+                                                                    <span x-text="check.category === 'maintenance' ? 'Maintenance' : check.check_key"></span>
+                                                                    <span x-show="check.status" x-text="' / ' + check.status_label"></span>
+                                                                </div>
+                                                                <div class="fault-history-date" x-text="check.description || '-'"></div>
+                                                                <div class="fault-history-date" x-text="formatDateTime(check.created_at)"></div>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -320,6 +429,121 @@
     }
 
     /* ── Type grouped column ────────────────── */
+    .operation-cell {
+        padding: 8px !important;
+        vertical-align: top;
+    }
+    .operation-table-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .operation-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.12);
+        table-layout: fixed;
+    }
+    .operation-table th,
+    .operation-table td {
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 4px 6px;
+        font-size: 11px;
+        line-height: 1.25;
+    }
+    .operation-table th {
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        text-align: center;
+        font-weight: 800;
+    }
+    .operation-radio-cell {
+        width: 54px;
+        text-align: center;
+    }
+    .operation-key-cell {
+        width: 82px;
+        color: var(--text);
+        text-align: center;
+    }
+    .operation-key-cell small {
+        display: block;
+        margin-top: 1px;
+        color: var(--text-muted);
+        font-size: 9px;
+        line-height: 1.1;
+    }
+    .operation-description-input {
+        width: 100%;
+        min-height: 24px;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 11px;
+        outline: none;
+    }
+    .operation-description-input:focus {
+        background: rgba(255,255,255,0.06);
+        box-shadow: inset 0 0 0 1px rgba(245,158,11,0.35);
+    }
+    .operation-row-not-fit td {
+        background: rgba(239, 68, 68, 0.34) !important;
+        color: #fff;
+    }
+    .operation-section-row td {
+        background: rgba(245,158,11,0.12);
+        color: var(--amber);
+        text-align: center;
+        font-weight: 800;
+    }
+    .operation-maintenance-label {
+        color: var(--text-muted);
+        text-align: center;
+        font-weight: 700;
+    }
+    .operation-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    .operation-save-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid rgba(245,158,11,0.3);
+        border-radius: 8px;
+        background: rgba(245,158,11,0.14);
+        color: var(--amber);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        transition: all 0.18s;
+    }
+    .operation-save-btn:hover {
+        background: rgba(245,158,11,0.22);
+    }
+    .operation-save-btn-saved {
+        background: rgba(239, 68, 68, 0.22);
+        border-color: rgba(239, 68, 68, 0.42);
+        color: #fca5a5;
+    }
+    .operation-save-msg {
+        min-height: 16px;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .operation-save-msg-saved,
+    .operation-save-msg-error,
+    .operation-history-not-fit .fault-history-desc {
+        color: #fca5a5;
+    }
+
     .type-group-cell {
         background: rgba(255,255,255,0.025);
         border-right: 2px solid rgba(255,255,255,0.1) !important;
@@ -461,7 +685,7 @@
     }
     .fault-panel-body {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 0.95fr 1.05fr 1fr;
         gap: 0;
     }
     @media (max-width: 768px) {
@@ -470,7 +694,7 @@
     .fault-col {
         padding: 16px 20px;
     }
-    .fault-col:first-child {
+    .fault-col:not(:last-child) {
         border-right: 1px solid rgba(255,255,255,0.06);
     }
     .fault-col-title {
@@ -543,6 +767,7 @@ function fleetTableApp() {
         faultTimers: {},
         faultBuffers: {},
         mileageSaveState: {},
+        operationSaveState: {},
 
         async updateStatus(id, maintenanceStatus) {
             const token = document.querySelector('meta[name="csrf-token"]').content;
@@ -579,6 +804,24 @@ function fleetTableApp() {
                 ? 'green'
                 : (healthStatus === 'warning' ? 'yellow' : 'red');
             return { statusLabel, statusClass };
+        },
+
+        updateStatusBadge(id, healthStatus) {
+            const badge = document.querySelector('[data-status-badge="' + id + '"]');
+            if (!badge || !healthStatus) return;
+
+            const mapped = this.statusFromHealth(healthStatus);
+            const text = badge.querySelector('.status-text');
+            if (text) {
+                text.textContent = mapped.statusLabel;
+            } else {
+                badge.textContent = mapped.statusLabel;
+            }
+
+            badge.className = badge.className
+                .replace(/badge-(green|yellow|red)/g, '')
+                .trim() + ' badge-' + mapped.statusClass;
+            badge.setAttribute('data-status-val', healthStatus);
         },
 
         refreshMileageHighlights() {
@@ -626,11 +869,12 @@ function fleetTableApp() {
 
             if (this.faultState[id]?.loaded && !forceReload) return;
 
-            this.faultState[id] = { loading: true, loaded: false, logs: [], saveMessage: '' };
+            this.faultState[id] = { loading: true, loaded: false, logs: [], operationChecks: [], saveMessage: '' };
             try {
                 const res = await fetch('/fleet/' + id);
                 const data = await res.json();
                 this.faultState[id].logs = (data.maintenance_logs || []).slice(0, 12);
+                this.faultState[id].operationChecks = (data.operation_checks || []).slice(0, 60);
                 this.faultState[id].loaded = true;
             } catch (e) {
                 this.faultState[id].logs = [];
@@ -659,13 +903,7 @@ function fleetTableApp() {
                 if (!res.ok) throw new Error('Mileage update failed');
 
                 const data = await res.json();
-                const badge = document.querySelector('[data-status-badge="' + id + '"]');
-                if (badge && data && data.health_status) {
-                    const mapped = this.statusFromHealth(data.health_status);
-                    badge.textContent = mapped.statusLabel;
-                    badge.classList.remove('badge-green', 'badge-yellow', 'badge-red');
-                    badge.classList.add('badge-' + mapped.statusClass);
-                }
+                this.updateStatusBadge(id, data.health_status);
 
                 this.refreshMileageHighlights();
                 this.mileageSaveState[id] = 'saved';
@@ -674,6 +912,94 @@ function fleetTableApp() {
                 console.error(e);
                 this.mileageSaveState[id] = 'error';
                 setTimeout(() => { this.mileageSaveState[id] = null; }, 2000);
+            }
+        },
+
+        collectOperationPayload(id) {
+            const cell = document.querySelector('[data-operation-cell="' + id + '"]');
+            const departments = {};
+            const maintenance = {};
+
+            if (!cell) {
+                return { departments, maintenance };
+            }
+
+            cell.querySelectorAll('[data-operation-department]').forEach((row) => {
+                const key = row.getAttribute('data-operation-department');
+                const checked = row.querySelector('[data-operation-status]:checked');
+                const description = row.querySelector('[data-operation-description]');
+                departments[key] = {
+                    status: checked ? checked.value : 'fit',
+                    description: description ? description.value : '',
+                };
+            });
+
+            cell.querySelectorAll('[data-operation-maintenance]').forEach((row) => {
+                const key = row.getAttribute('data-operation-maintenance');
+                const description = row.querySelector('[data-operation-maintenance-description]');
+                maintenance[key] = {
+                    description: description ? description.value : '',
+                };
+            });
+
+            return { departments, maintenance };
+        },
+
+        applyOperationSnapshot(id, snapshot) {
+            const cell = document.querySelector('[data-operation-cell="' + id + '"]');
+            if (!cell || !snapshot) return;
+
+            Object.entries(snapshot.departments || {}).forEach(([key, rowData]) => {
+                const row = cell.querySelector('[data-operation-department="' + key + '"]');
+                if (!row) return;
+
+                row.classList.toggle('operation-row-not-fit', rowData.status === 'not_fit');
+
+                const checked = row.querySelector('[data-operation-status="' + rowData.status + '"]');
+                if (checked) checked.checked = true;
+
+                const description = row.querySelector('[data-operation-description]');
+                if (description) description.value = rowData.description || '';
+            });
+
+            Object.entries(snapshot.maintenance || {}).forEach(([key, rowData]) => {
+                const row = cell.querySelector('[data-operation-maintenance="' + key + '"]');
+                if (!row) return;
+
+                const description = row.querySelector('[data-operation-maintenance-description]');
+                if (description) description.value = rowData.description || '';
+            });
+        },
+
+        async updateOperationCheck(id) {
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            this.operationSaveState[id] = { state: 'saving', message: 'กำลังบันทึก...' };
+
+            try {
+                const res = await fetch('/fleet/' + id + '/operation-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                    },
+                    body: JSON.stringify(this.collectOperationPayload(id)),
+                });
+
+                if (!res.ok) throw new Error('Operation check update failed');
+
+                const data = await res.json();
+                this.applyOperationSnapshot(id, data.operation_snapshot);
+                this.updateStatusBadge(id, data.health_status);
+
+                if (!this.faultState[id]) {
+                    this.faultState[id] = { loading: false, loaded: true, logs: [], operationChecks: [], saveMessage: '' };
+                }
+                this.faultState[id].operationChecks = data.operation_checks || [];
+                this.operationSaveState[id] = { state: 'saved', message: 'บันทึกแล้ว' };
+                setTimeout(() => { this.operationSaveState[id] = null; }, 1800);
+            } catch (e) {
+                console.error(e);
+                this.operationSaveState[id] = { state: 'error', message: 'บันทึกไม่สำเร็จ' };
             }
         },
 
@@ -739,13 +1065,7 @@ function fleetTableApp() {
 
                 const data = await res.json();
 
-                const badge = document.querySelector('[data-status-badge="' + id + '"]');
-                if (badge && data && data.health_status) {
-                    const mapped = this.statusFromHealth(data.health_status);
-                    badge.textContent = mapped.statusLabel;
-                    badge.classList.remove('badge-green', 'badge-yellow', 'badge-red');
-                    badge.classList.add('badge-' + mapped.statusClass);
-                }
+                this.updateStatusBadge(id, data.health_status);
 
                 this.faultState[id].saveMessage = '✓ บันทึกสำเร็จ';
                 setTimeout(() => {

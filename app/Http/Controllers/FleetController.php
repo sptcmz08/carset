@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\TrainSet;
 use App\Models\TrainSetMaintenanceLog;
 use App\Models\TrainSetMileageLog;
+use App\Models\TrainSetOperationCheck;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,8 @@ class FleetController extends Controller
     public function index(Request $request)
     {
         $filter = $request->get('filter', 'all');
-        $allTrainSets = TrainSet::withCount(['servicePlanEntries', 'maintenanceLogs'])
+        $allTrainSets = TrainSet::with(['operationChecks'])
+            ->withCount(['servicePlanEntries', 'maintenanceLogs'])
             ->orderBy('display_order')
             ->get();
 
@@ -52,6 +54,7 @@ class FleetController extends Controller
         $trainSet->load([
             'maintenanceLogs' => fn ($query) => $query->orderBy('service_date', 'desc'),
             'mileageLogs' => fn ($query) => $query->orderBy('log_date', 'desc')->limit(30),
+            'operationChecks' => fn ($query) => $query->latest()->limit(60),
             'servicePlanEntries.day',
         ]);
 
@@ -65,6 +68,16 @@ class FleetController extends Controller
             'maintenance_status_label' => $trainSet->maintenance_status_label,
             'maintenance_logs' => $trainSet->maintenanceLogs,
             'mileage_logs' => $trainSet->mileageLogs,
+            'operation_checks' => $trainSet->operationChecks->map(fn (TrainSetOperationCheck $check) => [
+                'id' => $check->id,
+                'category' => $check->category,
+                'check_key' => $check->check_key,
+                'check_label' => $check->check_label,
+                'status' => $check->status,
+                'status_label' => $check->status_label,
+                'description' => $check->description,
+                'created_at' => $check->created_at,
+            ])->values(),
         ]);
     }
 
@@ -98,6 +111,67 @@ class FleetController extends Controller
         return response()->json([
             'success' => true,
             'planning_note' => $trainSet->planning_note,
+        ]);
+    }
+
+    public function updateOperationCheck(Request $request, TrainSet $trainSet)
+    {
+        $validated = $request->validate([
+            'departments' => 'array',
+            'departments.*.status' => 'nullable|in:fit,not_fit',
+            'departments.*.description' => 'nullable|string|max:2000',
+            'maintenance' => 'array',
+            'maintenance.*.description' => 'nullable|string|max:2000',
+        ]);
+
+        $latest = $trainSet->operationChecks()
+            ->get()
+            ->sortByDesc('created_at')
+            ->unique(fn (TrainSetOperationCheck $check) => $check->category . ':' . $check->check_key)
+            ->keyBy(fn (TrainSetOperationCheck $check) => $check->category . ':' . $check->check_key);
+
+        $departmentRows = $validated['departments'] ?? [];
+        foreach (TrainSetOperationCheck::DEPARTMENTS as $key => $label) {
+            $row = $departmentRows[$key] ?? [];
+
+            $this->createOperationCheckWhenChanged($trainSet, $latest->get('department:' . $key), [
+                'category' => 'department',
+                'check_key' => $key,
+                'status' => $row['status'] ?? 'fit',
+                'description' => $this->stringOrNull($row['description'] ?? null),
+            ]);
+        }
+
+        $maintenanceRows = $validated['maintenance'] ?? [];
+        foreach (TrainSetOperationCheck::MAINTENANCE_TYPES as $key => $label) {
+            $row = $maintenanceRows[$key] ?? [];
+            $description = $this->stringOrNull($row['description'] ?? null);
+            $latestCheck = $latest->get('maintenance:' . $key);
+
+            if ($description !== null || $latestCheck) {
+                $this->createOperationCheckWhenChanged($trainSet, $latestCheck, [
+                    'category' => 'maintenance',
+                    'check_key' => $key,
+                    'status' => null,
+                    'description' => $description,
+                ]);
+            }
+        }
+
+        $fresh = $trainSet->fresh(['operationChecks']);
+
+        if ($fresh->has_operation_not_fit || $fresh->has_active_maintenance_window) {
+            $fresh->update(['maintenance_status' => 'major_repair']);
+            $fresh = $fresh->fresh(['operationChecks']);
+        } elseif ($fresh->maintenance_status !== 'retired') {
+            $fresh->update(['maintenance_status' => 'active']);
+            $fresh = $fresh->fresh(['operationChecks']);
+        }
+
+        return response()->json([
+            ...$this->buildStatusResponse($fresh),
+            'operation_snapshot' => $fresh->operationCheckSnapshot(),
+            'operation_checks' => $this->buildOperationHistory($fresh),
         ]);
     }
 
@@ -198,6 +272,42 @@ class FleetController extends Controller
         ];
     }
 
+    private function createOperationCheckWhenChanged(TrainSet $trainSet, ?TrainSetOperationCheck $latestCheck, array $attributes): void
+    {
+        if (
+            $latestCheck
+            && $latestCheck->status === ($attributes['status'] ?? null)
+            && $this->stringOrNull($latestCheck->description) === ($attributes['description'] ?? null)
+        ) {
+            return;
+        }
+
+        TrainSetOperationCheck::create([
+            'train_set_id' => $trainSet->id,
+            ...$attributes,
+        ]);
+    }
+
+    private function buildOperationHistory(TrainSet $trainSet): array
+    {
+        return $trainSet->operationChecks()
+            ->latest()
+            ->limit(60)
+            ->get()
+            ->map(fn (TrainSetOperationCheck $check) => [
+                'id' => $check->id,
+                'category' => $check->category,
+                'check_key' => $check->check_key,
+                'check_label' => $check->check_label,
+                'status' => $check->status,
+                'status_label' => $check->status_label,
+                'description' => $check->description,
+                'created_at' => $check->created_at,
+            ])
+            ->values()
+            ->all();
+    }
+
     private function buildConditionDescription(TrainSet $trainSet, ?string $repairNote = null): string
     {
         $segments = [];
@@ -219,5 +329,16 @@ class FleetController extends Controller
         }
 
         return implode(' / ', $segments ?: ['บันทึกสภาพขบวน']);
+    }
+
+    private function stringOrNull(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }

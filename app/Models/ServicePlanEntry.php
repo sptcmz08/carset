@@ -71,9 +71,9 @@ class ServicePlanEntry extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->effective_status) {
-            'available' => 'พร้อมให้บริการ',
-            'warning' => 'ใกล้วาระซ่อม',
-            'out_of_service' => 'งดให้บริการ',
+            'available' => 'Ready',
+            'warning' => 'Caution',
+            'out_of_service' => 'Not Service',
             default => 'ไม่ระบุ',
         };
     }

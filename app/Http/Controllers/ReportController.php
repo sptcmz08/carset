@@ -5,18 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\ServicePlanDay;
 use App\Models\TrainSet;
 use App\Models\TrainSetMaintenanceLog;
+use App\Models\TrainSetOperationCheck;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ReportController extends Controller
 {
     public function index(Request $request)
     {
         $period = $request->get('period', '7');
-        $days = (int) $period;
-        $startDate = Carbon::today()->subDays($days);
-        $endDate = Carbon::today();
-        $periodDays = $startDate->diffInDays($endDate) + 1;
+        $days = max((int) $period, 1);
+        $startDate = Carbon::today()->subDays($days - 1)->startOfDay();
+        $endDate = Carbon::today()->endOfDay();
+        $periodDays = $days;
 
         $planDays = ServicePlanDay::query()
             ->whereBetween('service_date', [$startDate->toDateString(), $endDate->toDateString()])
@@ -24,71 +26,126 @@ class ReportController extends Controller
             ->get();
 
         $entries = $planDays->flatMap->entries;
-
         $totalAssignments = $entries->count();
         $availableAssignments = $entries->where('effective_status', 'available')->count();
         $warningAssignments = $entries->where('effective_status', 'warning')->count();
         $outOfServiceAssignments = $entries->where('effective_status', 'out_of_service')->count();
         $availabilityRate = $totalAssignments > 0 ? round($availableAssignments / $totalAssignments * 100, 1) : 0;
 
-        $trainSets = TrainSet::query()->orderBy('display_order')->get();
-        $trainSetUtilization = [];
-        foreach ($trainSets as $trainSet) {
-            $plannedDays = $entries
-                ->where('train_set_id', $trainSet->id)
-                ->filter(fn ($entry) => $entry->effective_status !== 'out_of_service' && (! empty($entry->departure_plan_time) || ! empty($entry->outbound_run_no)))
-                ->count();
+        $trainSets = TrainSet::with('operationChecks')
+            ->orderBy('display_order')
+            ->get();
 
-            $utilization = $periodDays > 0 ? round($plannedDays / $periodDays * 100, 1) : 0;
-
-            $trainSetUtilization[] = [
-                'train_set' => $trainSet,
-                'planned_days' => $plannedDays,
-                'utilization' => min($utilization, 100),
-            ];
+        $dates = collect();
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $dates->push(Carbon::today()->subDays($i));
         }
-        usort($trainSetUtilization, fn ($a, $b) => $b['planned_days'] <=> $a['planned_days']);
+
+        $entriesByDate = $entries
+            ->filter(fn ($entry) => $entry->day)
+            ->groupBy(fn ($entry) => Carbon::parse($entry->day->service_date)->format('Y-m-d'))
+            ->map(fn (Collection $dayEntries) => $dayEntries->keyBy('train_set_id'));
+
+        $statusMatrix = $trainSets->map(function (TrainSet $trainSet) use ($dates, $entriesByDate) {
+            return [
+                'train_set' => $trainSet,
+                'statuses' => $dates->map(function (Carbon $date) use ($trainSet, $entriesByDate) {
+                    $entry = $entriesByDate->get($date->format('Y-m-d'))?->get($trainSet->id);
+                    $status = $entry?->effective_status ?? $trainSet->health_status;
+
+                    return [
+                        'date' => $date,
+                        'status' => $status,
+                        'label' => $this->statusLabel($status),
+                    ];
+                })->all(),
+            ];
+        });
 
         $maintenanceLogs = TrainSetMaintenanceLog::with('trainSet')
-            ->whereBetween('service_date', [$startDate, $endDate])
-            ->get();
-        $totalMaintenanceCost = $maintenanceLogs->sum('cost');
-        $scheduledCost = $maintenanceLogs->where('maintenance_type', 'scheduled')->sum('cost');
-        $repairCost = $maintenanceLogs->whereIn('maintenance_type', ['minor_repair', 'major_repair'])->sum('cost');
+            ->whereBetween('service_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->get()
+            ->map(fn (TrainSetMaintenanceLog $log) => [
+                'train_set_id' => $log->train_set_id,
+                'train_set' => $log->trainSet,
+                'date' => $log->service_date,
+                'title' => $log->maintenance_type,
+                'description' => $log->description,
+                'status' => $log->status,
+            ]);
 
-        $problemTrainSets = $maintenanceLogs
-            ->whereIn('maintenance_type', ['minor_repair', 'major_repair'])
-            ->groupBy('train_set_id')
-            ->map(fn ($logs) => [
-                'train_set' => $logs->first()->trainSet,
-                'count' => $logs->count(),
-                'total_cost' => $logs->sum('cost'),
-            ])
-            ->sortByDesc('count')
-            ->take(5)
+        $operationLogs = TrainSetOperationCheck::with('trainSet')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where(function ($query) {
+                $query->where(function ($departmentQuery) {
+                    $departmentQuery
+                        ->where('category', 'department')
+                        ->where(function ($issueQuery) {
+                            $issueQuery
+                                ->where('status', 'not_fit')
+                                ->orWhereNotNull('description');
+                        });
+                })->orWhere(function ($maintenanceQuery) {
+                    $maintenanceQuery
+                        ->where('category', 'maintenance')
+                        ->whereNotNull('description');
+                });
+            })
+            ->latest()
+            ->get()
+            ->map(fn (TrainSetOperationCheck $check) => [
+                'train_set_id' => $check->train_set_id,
+                'train_set' => $check->trainSet,
+                'date' => $check->created_at,
+                'title' => $check->category === 'maintenance'
+                    ? 'Maintenance / ' . $check->check_key
+                    : $check->check_key . ' / ' . $check->status_label,
+                'description' => $check->description ?: '-',
+                'status' => $check->status,
+            ]);
+
+        $allDamageLogs = $maintenanceLogs
+            ->concat($operationLogs)
+            ->sortByDesc(fn (array $log) => $log['date'])
             ->values();
 
-        $planDaysByDate = $planDays->keyBy(fn (ServicePlanDay $day) => Carbon::parse($day->service_date)->format('Y-m-d'));
-        $chartLabels = [];
-        $chartAvailable = [];
-        $chartWarning = [];
-        $chartOut = [];
-        for ($i = $days; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
-            $day = $planDaysByDate->get($date->format('Y-m-d'));
-            $dayEntries = $day?->entries ?? collect();
+        $damageHistory = $trainSets->map(fn (TrainSet $trainSet) => [
+            'train_set' => $trainSet,
+            'logs' => $allDamageLogs
+                ->where('train_set_id', $trainSet->id)
+                ->values(),
+        ]);
 
-            $chartLabels[] = $date->format('d/m');
-            $chartAvailable[] = $dayEntries->where('effective_status', 'available')->count();
-            $chartWarning[] = $dayEntries->where('effective_status', 'warning')->count();
-            $chartOut[] = $dayEntries->where('effective_status', 'out_of_service')->count();
-        }
+        $damageHistoryTotal = $allDamageLogs->count();
+        $affectedTrainSets = $allDamageLogs->pluck('train_set_id')->unique()->count();
 
         return view('reports', compact(
-            'period', 'days', 'startDate', 'endDate', 'periodDays',
-            'totalAssignments', 'availableAssignments', 'warningAssignments', 'outOfServiceAssignments', 'availabilityRate',
-            'trainSetUtilization', 'totalMaintenanceCost', 'scheduledCost', 'repairCost',
-            'problemTrainSets', 'chartLabels', 'chartAvailable', 'chartWarning', 'chartOut'
+            'period',
+            'days',
+            'startDate',
+            'endDate',
+            'periodDays',
+            'totalAssignments',
+            'availableAssignments',
+            'warningAssignments',
+            'outOfServiceAssignments',
+            'availabilityRate',
+            'trainSets',
+            'dates',
+            'statusMatrix',
+            'damageHistory',
+            'damageHistoryTotal',
+            'affectedTrainSets'
         ));
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'available' => 'Ready',
+            'warning' => 'Caution',
+            'out_of_service' => 'Not Service',
+            default => '-',
+        };
     }
 }

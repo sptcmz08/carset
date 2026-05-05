@@ -295,6 +295,15 @@ class DailyPlanController extends Controller
     private function resolveOrCreatePlanDay(Carbon $date): ServicePlanDay
     {
         $trainSets = $this->ensureTrainSets();
+        $existingDay = ServicePlanDay::query()
+            ->whereDate('service_date', $date->toDateString())
+            ->first();
+
+        if ($existingDay) {
+            $this->ensureEntries($existingDay, $trainSets);
+
+            return $existingDay;
+        }
 
         $day = ServicePlanDay::firstOrCreate(
             ['service_date' => $date->toDateString()],
