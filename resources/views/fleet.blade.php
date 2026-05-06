@@ -171,9 +171,9 @@
                                                 <thead>
                                                     <tr>
                                                         <th colspan="2">Status</th>
-                                                        <th rowspan="2">Dep.</th>
+                                                        <th rowspan="2">DEP.</th>
                                                         <th rowspan="2">Description</th>
-                                                        <th colspan="2">Maintenance</th>
+                                                        <th colspan="2">Maintenence</th>
                                                     </tr>
                                                     <tr>
                                                         <th>Fit for</th>
@@ -186,33 +186,37 @@
                                                     @php
                                                         $maintenanceRows = collect($operationChecks['maintenance'])->values();
                                                         $selectedMaintenance = $maintenanceRows->first(fn ($maintenance) => ! empty($maintenance['description'])) ?? $maintenanceRows->first();
+                                                        $departmentStatus = collect($operationChecks['departments'])->contains(fn ($department) => ($department['status'] ?? 'fit') === 'not_fit')
+                                                            ? 'not_fit'
+                                                            : 'fit';
                                                     @endphp
                                                     @foreach($operationChecks['departments'] as $depKey => $row)
                                                         <tr
-                                                            class="operation-dept-row {{ $row['status'] === 'not_fit' ? 'operation-row-not-fit' : '' }}"
+                                                            class="operation-dept-row {{ $departmentStatus === 'not_fit' ? 'operation-row-not-fit' : '' }}"
                                                             data-operation-department="{{ $depKey }}"
                                                         >
-                                                            <td class="operation-radio-cell">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="operation_{{ $trainSet->id }}_{{ $depKey }}"
-                                                                    value="fit"
-                                                                    data-operation-status="fit"
-                                                                    {{ $row['status'] === 'fit' ? 'checked' : '' }}
-                                                                >
-                                                            </td>
-                                                            <td class="operation-radio-cell">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="operation_{{ $trainSet->id }}_{{ $depKey }}"
-                                                                    value="not_fit"
-                                                                    data-operation-status="not_fit"
-                                                                    {{ $row['status'] === 'not_fit' ? 'checked' : '' }}
-                                                                >
-                                                            </td>
+                                                            @if($loop->first)
+                                                                <td class="operation-radio-cell" rowspan="{{ count($operationChecks['departments']) }}">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="operation_{{ $trainSet->id }}"
+                                                                        value="fit"
+                                                                        data-operation-status="fit"
+                                                                        {{ $departmentStatus === 'fit' ? 'checked' : '' }}
+                                                                    >
+                                                                </td>
+                                                                <td class="operation-radio-cell" rowspan="{{ count($operationChecks['departments']) }}">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="operation_{{ $trainSet->id }}"
+                                                                        value="not_fit"
+                                                                        data-operation-status="not_fit"
+                                                                        {{ $departmentStatus === 'not_fit' ? 'checked' : '' }}
+                                                                    >
+                                                                </td>
+                                                            @endif
                                                             <td class="operation-key-cell">
                                                                 <strong>{{ $depKey }}</strong>
-                                                                <small>{{ $row['label'] }}</small>
                                                             </td>
                                                             <td>
                                                                 <input
@@ -445,82 +449,91 @@
     .operation-table {
         width: 100%;
         border-collapse: collapse;
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.12);
+        background: #ffffff;
+        border: 1px solid #000000;
         table-layout: fixed;
     }
     .operation-table th,
     .operation-table td {
-        border: 1px solid rgba(255,255,255,0.12);
-        padding: 4px 6px;
-        font-size: 11px;
-        line-height: 1.25;
+        border: 1px solid #000000;
+        padding: 0 4px;
+        font-size: 13px;
+        line-height: 1.1;
+        height: 24px;
+        color: #000000;
+    }
+    .operation-table td[rowspan] {
+        vertical-align: middle;
     }
     .operation-table th {
-        background: rgba(255,255,255,0.08);
-        color: var(--text);
+        background: #ffffff;
+        color: #000000;
         text-align: center;
-        font-weight: 800;
+        font-weight: 600;
     }
     .operation-radio-cell {
-        width: 58px;
+        width: 70px;
         text-align: center;
+        vertical-align: middle;
+    }
+    .operation-radio-cell input[type="radio"] {
+        width: 14px;
+        height: 14px;
+        accent-color: #000000;
     }
     .operation-key-cell {
-        width: 76px;
-        color: var(--text);
+        width: 78px;
+        color: #000000;
         text-align: center;
+        vertical-align: middle;
     }
     .operation-key-cell small {
-        display: block;
-        margin-top: 1px;
-        color: var(--text-muted);
-        font-size: 9px;
-        line-height: 1.1;
+        display: none;
     }
     .operation-description-input {
         width: 100%;
-        min-height: 24px;
+        min-height: 23px;
         border: none;
         background: transparent;
-        color: var(--text);
+        color: #000000;
         font-family: inherit;
-        font-size: 11px;
+        font-size: 13px;
         outline: none;
     }
     .operation-description-input:focus {
-        background: rgba(255,255,255,0.06);
-        box-shadow: inset 0 0 0 1px rgba(245,158,11,0.35);
+        background: #fff7cc;
+        box-shadow: inset 0 0 0 1px #000000;
     }
     .operation-time-cell {
-        width: 110px;
+        width: 88px;
+        vertical-align: middle;
     }
     .operation-time-select {
         width: 100%;
-        min-height: 26px;
+        min-height: 24px;
         border: none;
-        background: rgba(255,255,255,0.04);
-        color: var(--text);
+        background: #ffffff;
+        color: #000000;
         font-family: inherit;
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 13px;
+        font-weight: 500;
         outline: none;
         cursor: pointer;
     }
     .operation-time-select option {
-        background: var(--navy-light);
-        color: var(--text);
+        background: #ffffff;
+        color: #000000;
     }
     .operation-row-not-fit td {
-        background: rgba(239, 68, 68, 0.34) !important;
-        color: #fff;
+        background: #ffffff !important;
+        color: #000000;
     }
     .operation-section-row td,
     .operation-section-row th {
-        background: rgba(245,158,11,0.12);
-        color: var(--amber);
+        background: #ffffff;
+        color: #000000;
         text-align: center;
-        font-weight: 800;
+        font-weight: 600;
     }
     .operation-maintenance-label {
         color: var(--text-muted);
@@ -948,12 +961,13 @@ function fleetTableApp() {
                 return { departments, maintenance };
             }
 
+            const selectedDepartmentStatus = cell.querySelector('[data-operation-status]:checked');
+
             cell.querySelectorAll('[data-operation-department]').forEach((row) => {
                 const key = row.getAttribute('data-operation-department');
-                const checked = row.querySelector('[data-operation-status]:checked');
                 const description = row.querySelector('[data-operation-description]');
                 departments[key] = {
-                    status: checked ? checked.value : 'fit',
+                    status: selectedDepartmentStatus ? selectedDepartmentStatus.value : 'fit',
                     description: description ? description.value : '',
                 };
             });
@@ -982,14 +996,17 @@ function fleetTableApp() {
             const cell = document.querySelector('[data-operation-cell="' + id + '"]');
             if (!cell || !snapshot) return;
 
+            const hasNotFit = Object.values(snapshot.departments || {})
+                .some((rowData) => rowData.status === 'not_fit');
+            const mergedStatus = hasNotFit ? 'not_fit' : 'fit';
+            const mergedStatusInput = cell.querySelector('[data-operation-status="' + mergedStatus + '"]');
+            if (mergedStatusInput) mergedStatusInput.checked = true;
+
             Object.entries(snapshot.departments || {}).forEach(([key, rowData]) => {
                 const row = cell.querySelector('[data-operation-department="' + key + '"]');
                 if (!row) return;
 
-                row.classList.toggle('operation-row-not-fit', rowData.status === 'not_fit');
-
-                const checked = row.querySelector('[data-operation-status="' + rowData.status + '"]');
-                if (checked) checked.checked = true;
+                row.classList.toggle('operation-row-not-fit', mergedStatus === 'not_fit');
 
                 const description = row.querySelector('[data-operation-description]');
                 if (description) description.value = rowData.description || '';
