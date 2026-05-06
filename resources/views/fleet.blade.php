@@ -449,25 +449,25 @@
     .operation-table {
         width: 100%;
         border-collapse: collapse;
-        background: #ffffff;
-        border: 1px solid #000000;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.36);
         table-layout: fixed;
     }
     .operation-table th,
     .operation-table td {
-        border: 1px solid #000000;
+        border: 1px solid rgba(148, 163, 184, 0.32);
         padding: 0 4px;
         font-size: 13px;
         line-height: 1.1;
         height: 24px;
-        color: #000000;
+        color: var(--text);
     }
     .operation-table td[rowspan] {
         vertical-align: middle;
     }
     .operation-table th {
-        background: #ffffff;
-        color: #000000;
+        background: rgba(30, 41, 59, 0.96);
+        color: var(--text);
         text-align: center;
         font-weight: 600;
     }
@@ -479,11 +479,11 @@
     .operation-radio-cell input[type="radio"] {
         width: 14px;
         height: 14px;
-        accent-color: #000000;
+        accent-color: var(--amber);
     }
     .operation-key-cell {
         width: 78px;
-        color: #000000;
+        color: var(--text);
         text-align: center;
         vertical-align: middle;
     }
@@ -495,14 +495,14 @@
         min-height: 23px;
         border: none;
         background: transparent;
-        color: #000000;
+        color: var(--text);
         font-family: inherit;
         font-size: 13px;
         outline: none;
     }
     .operation-description-input:focus {
-        background: #fff7cc;
-        box-shadow: inset 0 0 0 1px #000000;
+        background: rgba(245,158,11,0.12);
+        box-shadow: inset 0 0 0 1px rgba(245,158,11,0.42);
     }
     .operation-time-cell {
         width: 88px;
@@ -512,8 +512,8 @@
         width: 100%;
         min-height: 24px;
         border: none;
-        background: #ffffff;
-        color: #000000;
+        background: rgba(15, 23, 42, 0.7);
+        color: var(--text);
         font-family: inherit;
         font-size: 13px;
         font-weight: 500;
@@ -521,17 +521,17 @@
         cursor: pointer;
     }
     .operation-time-select option {
-        background: #ffffff;
-        color: #000000;
+        background: var(--navy-light);
+        color: var(--text);
     }
     .operation-row-not-fit td {
-        background: #ffffff !important;
-        color: #000000;
+        background: rgba(239, 68, 68, 0.18) !important;
+        color: var(--text);
     }
     .operation-section-row td,
     .operation-section-row th {
-        background: #ffffff;
-        color: #000000;
+        background: rgba(30, 41, 59, 0.96);
+        color: var(--text);
         text-align: center;
         font-weight: 600;
     }
