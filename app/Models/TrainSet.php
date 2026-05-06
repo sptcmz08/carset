@@ -90,6 +90,7 @@ class TrainSet extends Model
         foreach (TrainSetOperationCheck::MAINTENANCE_TYPES as $key => $label) {
             $check = $latest->get('maintenance:' . $key);
             $maintenance[$key] = [
+                'key' => $key,
                 'label' => $label,
                 'status' => $check?->status ?? 'fit',
                 'description' => $check?->description ?? '',

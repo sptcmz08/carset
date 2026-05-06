@@ -48,8 +48,8 @@
                     <tr>
                         <th colspan="2" class="fleet-head" style="width: 160px; text-align: center;">Train</th>
                         <th rowspan="2" class="fleet-head" style="width: 120px; text-align: center;">Status</th>
-                        <th rowspan="2" class="fleet-head" style="width: 100px; text-align: center;">KM.</th>
-                        <th rowspan="2" class="fleet-head" style="text-align: center;">Note</th>
+                        <th rowspan="2" class="fleet-head" style="width: 140px; text-align: center;">KM.</th>
+                        <th rowspan="2" class="fleet-head" style="width: 820px; text-align: center;">Note</th>
                         <th rowspan="2" class="fleet-head" style="width: 80px; text-align: center;">Fault</th>
                     </tr>
                     <tr>
@@ -139,7 +139,7 @@
                                             <input
                                                 type="number"
                                                 class="form-input km-input"
-                                                style="padding: 8px 10px; border-radius: 10px; flex: 1; text-align: right; font-weight: 700; letter-spacing: 0.5px;"
+                                                style="padding: 8px 12px; border-radius: 10px; flex: 1; min-width: 96px; text-align: right; font-weight: 700; letter-spacing: 0.5px;"
                                                 value="{{ $trainSet->current_mileage }}"
                                                 min="0"
                                                 data-km-input="{{ $trainSet->id }}"
@@ -173,13 +173,20 @@
                                                         <th colspan="2">Status</th>
                                                         <th rowspan="2">Dep.</th>
                                                         <th rowspan="2">Description</th>
+                                                        <th colspan="2">Maintenance</th>
                                                     </tr>
                                                     <tr>
                                                         <th>Fit for</th>
                                                         <th>Not fit</th>
+                                                        <th>Time</th>
+                                                        <th>Description</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+                                                    @php
+                                                        $maintenanceRows = collect($operationChecks['maintenance'])->values();
+                                                        $selectedMaintenance = $maintenanceRows->first(fn ($maintenance) => ! empty($maintenance['description'])) ?? $maintenanceRows->first();
+                                                    @endphp
                                                     @foreach($operationChecks['departments'] as $depKey => $row)
                                                         <tr
                                                             class="operation-dept-row {{ $row['status'] === 'not_fit' ? 'operation-row-not-fit' : '' }}"
@@ -216,44 +223,24 @@
                                                                     placeholder="รายละเอียดความเสียหาย"
                                                                 >
                                                             </td>
-                                                        </tr>
-                                                    @endforeach
-
-                                                    <tr class="operation-section-row">
-                                                        <th colspan="2">Maintenance</th>
-                                                        <th>Fit for</th>
-                                                        <th>Not fit</th>
-                                                    </tr>
-                                                    @foreach($operationChecks['maintenance'] as $maintenanceKey => $row)
-                                                        <tr class="operation-maintenance-row {{ ($row['status'] ?? null) === 'not_fit' ? 'operation-row-not-fit' : '' }}" data-operation-maintenance="{{ $maintenanceKey }}">
-                                                            <td class="operation-radio-cell">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="maint_{{ $trainSet->id }}_{{ $maintenanceKey }}"
-                                                                    value="fit"
-                                                                    data-operation-maintenance-status="fit"
-                                                                    {{ ($row['status'] ?? 'fit') === 'fit' ? 'checked' : '' }}
-                                                                >
-                                                            </td>
-                                                            <td class="operation-radio-cell">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="maint_{{ $trainSet->id }}_{{ $maintenanceKey }}"
-                                                                    value="not_fit"
-                                                                    data-operation-maintenance-status="not_fit"
-                                                                    {{ ($row['status'] ?? 'fit') === 'not_fit' ? 'checked' : '' }}
-                                                                >
-                                                            </td>
-                                                            <td class="operation-key-cell"><strong>{{ $maintenanceKey }}</strong></td>
-                                                            <td>
-                                                                <input
-                                                                    type="text"
-                                                                    class="operation-description-input"
-                                                                    data-operation-maintenance-description
-                                                                    value="{{ $row['description'] }}"
-                                                                    placeholder="ระบุช่วงเวลาซ่อมบำรุง"
-                                                                >
-                                                            </td>
+                                                            @if($loop->first)
+                                                                <td class="operation-time-cell" rowspan="{{ count($operationChecks['departments']) }}">
+                                                                    <select class="operation-time-select" data-operation-maintenance-time>
+                                                                        @foreach(['Daily', 'Weekly', 'Monthly', 'Yearly', 'Overhaul'] as $timeOption)
+                                                                            <option value="{{ $timeOption }}" {{ ($selectedMaintenance['key'] ?? 'Daily') === $timeOption ? 'selected' : '' }}>{{ $timeOption }}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </td>
+                                                                <td rowspan="{{ count($operationChecks['departments']) }}">
+                                                                    <input
+                                                                        type="text"
+                                                                        class="operation-description-input"
+                                                                        data-operation-maintenance-description
+                                                                        value="{{ $selectedMaintenance['description'] ?? '' }}"
+                                                                        placeholder="ระบุช่วงเวลาซ่อมบำรุง"
+                                                                    >
+                                                                </td>
+                                                            @endif
                                                         </tr>
                                                     @endforeach
                                                 </tbody>
@@ -476,11 +463,11 @@
         font-weight: 800;
     }
     .operation-radio-cell {
-        width: 54px;
+        width: 58px;
         text-align: center;
     }
     .operation-key-cell {
-        width: 82px;
+        width: 76px;
         color: var(--text);
         text-align: center;
     }
@@ -504,6 +491,25 @@
     .operation-description-input:focus {
         background: rgba(255,255,255,0.06);
         box-shadow: inset 0 0 0 1px rgba(245,158,11,0.35);
+    }
+    .operation-time-cell {
+        width: 110px;
+    }
+    .operation-time-select {
+        width: 100%;
+        min-height: 26px;
+        border: none;
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        outline: none;
+        cursor: pointer;
+    }
+    .operation-time-select option {
+        background: var(--navy-light);
+        color: var(--text);
     }
     .operation-row-not-fit td {
         background: rgba(239, 68, 68, 0.34) !important;
@@ -952,15 +958,22 @@ function fleetTableApp() {
                 };
             });
 
-            cell.querySelectorAll('[data-operation-maintenance]').forEach((row) => {
-                const key = row.getAttribute('data-operation-maintenance');
-                const checked = row.querySelector('[data-operation-maintenance-status]:checked');
-                const description = row.querySelector('[data-operation-maintenance-description]');
+            ['Daily', 'Weekly', 'Monthly', 'Yearly', 'Overhaul'].forEach((key) => {
                 maintenance[key] = {
-                    status: checked ? checked.value : 'fit',
-                    description: description ? description.value : '',
+                    status: 'fit',
+                    description: '',
                 };
             });
+
+            const maintenanceTime = cell.querySelector('[data-operation-maintenance-time]');
+            const maintenanceDescription = cell.querySelector('[data-operation-maintenance-description]');
+
+            if (maintenanceTime) {
+                maintenance[maintenanceTime.value] = {
+                    status: 'fit',
+                    description: maintenanceDescription ? maintenanceDescription.value : '',
+                };
+            }
 
             return { departments, maintenance };
         },
@@ -982,18 +995,18 @@ function fleetTableApp() {
                 if (description) description.value = rowData.description || '';
             });
 
-            Object.entries(snapshot.maintenance || {}).forEach(([key, rowData]) => {
-                const row = cell.querySelector('[data-operation-maintenance="' + key + '"]');
-                if (!row) return;
+            const activeMaintenance = Object.entries(snapshot.maintenance || {})
+                .find(([, rowData]) => rowData.description);
+            const maintenanceTime = cell.querySelector('[data-operation-maintenance-time]');
+            const maintenanceDescription = cell.querySelector('[data-operation-maintenance-description]');
 
-                row.classList.toggle('operation-row-not-fit', rowData.status === 'not_fit');
-
-                const checked = row.querySelector('[data-operation-maintenance-status="' + (rowData.status || 'fit') + '"]');
-                if (checked) checked.checked = true;
-
-                const description = row.querySelector('[data-operation-maintenance-description]');
-                if (description) description.value = rowData.description || '';
-            });
+            if (activeMaintenance) {
+                const [key, rowData] = activeMaintenance;
+                if (maintenanceTime) maintenanceTime.value = key;
+                if (maintenanceDescription) maintenanceDescription.value = rowData.description || '';
+            } else if (maintenanceDescription) {
+                maintenanceDescription.value = '';
+            }
         },
 
         async updateOperationCheck(id) {
